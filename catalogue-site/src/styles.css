@@ -283,6 +283,9 @@ main {
 }
 
 .folder-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin: 34px 0 0;
   color: var(--muted);
   font-size: 0.9rem;
@@ -304,6 +307,33 @@ main {
 .folder-breadcrumbs b {
   padding: 0 5px;
   color: var(--line);
+}
+
+.folder-breadcrumbs .folder-up {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  color: var(--ink);
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  font-weight: 700;
+}
+
+.folder-breadcrumbs .folder-up:hover {
+  color: var(--ink);
+  border-color: #a982e3;
+  text-decoration: none;
+}
+
+.folder-up span {
+  color: var(--purple);
+  font-size: 1.1rem;
+}
+
+.folder-breadcrumbs__trail {
+  min-width: 0;
 }
 
 .folder-grid {

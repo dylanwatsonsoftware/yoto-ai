@@ -53,8 +53,8 @@ function formatDate(value: string): string {
 }
 
 function albumType(album: Album): string {
-  if (album.kind === "expanded") return "Expanded playlist";
-  return `${album.archiveFormat?.toUpperCase() ?? "Archive"} playlist`;
+  if (album.kind === "expanded") return "Playlist";
+  return `${album.archiveFormat?.toUpperCase() ?? "Archive"}`;
 }
 
 function playlistFolder(album: Album, catalogue: Catalogue): string {
@@ -290,6 +290,13 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
         }))
       : [])
   ];
+  const parentFolder = currentFolder
+    ? catalogue.collections.find(
+        (collection) => collection.id === currentFolder.parentId
+      )
+    : undefined;
+  const parentFolderId = parentFolder?.id ?? "all";
+  const parentFolderTitle = parentFolder?.title ?? catalogue.root.title;
   const selected = state.selected
     ? catalogue.albums.find((album) => album.id === state.selected)
     : undefined;
@@ -302,6 +309,16 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
       `${window.location.pathname}${query ? `?${query}` : ""}`
     );
   }, [state]);
+
+  useEffect(() => {
+    const restoreFromHistory = () =>
+      setState({
+        ...defaultFilters,
+        ...readCatalogueQuery(window.location.search)
+      });
+    window.addEventListener("popstate", restoreFromHistory);
+    return () => window.removeEventListener("popstate", restoreFromHistory);
+  }, []);
 
   useEffect(() => {
     window.localStorage.setItem(FAVOURITES_KEY, JSON.stringify(favourites));
@@ -328,6 +345,19 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
     key: K,
     value: CatalogueQuery[K]
   ) => setState((current) => ({ ...current, [key]: value, selected: undefined }));
+
+  const navigate = (next: CatalogueQuery) => {
+    const query = writeCatalogueQuery(next);
+    window.history.pushState(
+      null,
+      "",
+      `${window.location.pathname}${query ? `?${query}` : ""}`
+    );
+    setState(next);
+  };
+
+  const navigateToFolder = (collection: string) =>
+    navigate({ ...state, collection, selected: undefined });
 
   return (
     <div className="app-shell">
@@ -451,20 +481,34 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
 
         {browseMode && (
           <nav className="folder-breadcrumbs" aria-label="Folder location">
+            {currentFolder && (
+              <button
+                type="button"
+                className="folder-up"
+                aria-label={`Up to ${parentFolderTitle}`}
+                onClick={() => navigateToFolder(parentFolderId)}
+              >
+                <span aria-hidden="true">↑</span>
+                Up
+              </button>
+            )}
+            <span className="folder-breadcrumbs__trail">
             {folderTrail.map((folder, index) => (
               <span key={folder.id}>
                 {index > 0 && <b aria-hidden="true"> / </b>}
                 <button
                   type="button"
-                  onClick={() => update(
-                    "collection",
-                    folder.id === catalogue.root.id ? "all" : folder.id
-                  )}
+                  onClick={() =>
+                    navigateToFolder(
+                      folder.id === catalogue.root.id ? "all" : folder.id
+                    )
+                  }
                 >
                   {folder.title}
                 </button>
               </span>
             ))}
+            </span>
           </nav>
         )}
 
@@ -525,7 +569,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
                 className="folder-card"
                 key={folder.id}
                 aria-label={`Open folder ${folder.title}`}
-                onClick={() => update("collection", folder.id)}
+                onClick={() => navigateToFolder(folder.id)}
               >
                 <span className="folder-card__icon" aria-hidden="true">◆</span>
                 <span>
@@ -561,7 +605,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
                       : ""
                   }`}
                   aria-label={`Open ${album.title}`}
-                  onClick={() => setState((current) => ({ ...current, selected: album.id }))}
+                  onClick={() => navigate({ ...state, selected: album.id })}
                 >
                   {(layout === "gallery" || album.cover) && (
                     <AlbumArtwork album={album} />
@@ -575,7 +619,9 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
                       Folder: {playlistFolder(album, catalogue)}
                     </p>
                     <div className="album-card__meta">
-                      <span>{album.kind === "expanded" ? `${album.tracks.length} tracks` : "Contents uninspected"}</span>
+                      {album.kind === "expanded" && (
+                        <span>{album.tracks.length} tracks</span>
+                      )}
                       <span>{formatDate(album.modifiedTime)}</span>
                     </div>
                   </div>

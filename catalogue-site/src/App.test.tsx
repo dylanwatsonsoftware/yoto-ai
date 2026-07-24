@@ -1,6 +1,6 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import type { Catalogue } from "./catalogue";
 
@@ -124,6 +124,7 @@ describe("catalogue app", () => {
     );
     expect(screen.queryByText("Ada Twist")).not.toBeInTheDocument();
     expect(screen.getByText("Bluey Dance")).toBeInTheDocument();
+    expect(screen.queryByText(/contents uninspected/i)).not.toBeInTheDocument();
     expect(window.location.search).toContain("kind=archive");
   });
 
@@ -140,6 +141,39 @@ describe("catalogue app", () => {
 
     expect(screen.getByRole("navigation", { name: "Folder location" })).toHaveTextContent(
       "MYO Idea Exchange / Science"
+    );
+    expect(screen.getByRole("button", { name: "Open Ada Twist" })).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "Up to MYO Idea Exchange" })
+    );
+    expect(screen.getByRole("heading", { name: "2 folders" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open folder Science" })).toBeInTheDocument();
+  });
+
+  it("adds folder and playlist navigation to browser history", async () => {
+    const user = userEvent.setup();
+    const pushState = vi.spyOn(window.history, "pushState");
+    render(<App catalogue={catalogue} />);
+
+    await user.click(screen.getByRole("button", { name: "Open folder Science" }));
+    expect(pushState).toHaveBeenLastCalledWith(
+      null,
+      "",
+      "/?collection=science"
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open Ada Twist" }));
+    expect(pushState).toHaveBeenLastCalledWith(
+      null,
+      "",
+      "/?collection=science&album=ada"
+    );
+
+    window.history.replaceState(null, "", "/?collection=science");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Ada Twist" })).not.toBeInTheDocument()
     );
     expect(screen.getByRole("button", { name: "Open Ada Twist" })).toBeInTheDocument();
   });
