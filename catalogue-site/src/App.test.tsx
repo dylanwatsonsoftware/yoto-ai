@@ -310,6 +310,9 @@ describe("catalogue app", () => {
       screen.getByRole("region", { name: "Catalogue filters" })
     ).toHaveClass("discovery--filters-open");
     expect(
+      screen.getByRole("region", { name: "Catalogue filters" })
+    ).toHaveStyle({ position: "relative" });
+    expect(
       screen.getByRole("combobox", { name: "Playlist type" })
     ).toBeVisible();
   });

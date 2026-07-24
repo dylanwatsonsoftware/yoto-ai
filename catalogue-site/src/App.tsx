@@ -448,6 +448,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
         <section
           className={`discovery ${filtersOpen ? "discovery--filters-open" : ""}`}
           aria-label="Catalogue filters"
+          style={{ position: "relative" }}
         >
           <label className="search">
             <span>Search catalogue</span>
