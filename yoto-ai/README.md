@@ -80,34 +80,21 @@ Do not create, configure, or store a client secret for this skill.
 
 ## Configure your agent
 
-Make `YOTO_CLIENT_ID` available to the agent process before starting it:
+Copy the ignored environment template and populate it locally:
 
 ```bash
-export YOTO_CLIENT_ID="your-client-id"
+cp .env.example .env
 ```
 
-The default callback is already `http://127.0.0.1:8787/callback`.
-`YOTO_REDIRECT_URI` is only needed if you registered a different loopback URL:
+Set `YOTO_CLIENT_ID` to your public client ID and
+`YOTO_CONFIRMATION_SECRET` to a random per-session value. The CLI automatically
+loads this file. It must remain untracked.
 
-```bash
-export YOTO_REDIRECT_URI="http://127.0.0.1:8787/callback"
-```
-
-Optional:
-
-```bash
-export YOTO_TOKEN_STORE="yoto-ai-skill"
-```
-
-For package publishing, create a per-session confirmation secret:
-
-```bash
-export YOTO_CONFIRMATION_SECRET="$(openssl rand -hex 32)"
-```
-
-This changes the service name used in the operating-system keychain. Never put
-access or refresh tokens in environment variables, `.env` files, source
-control, prompts, or logs.
+The default callback is `http://127.0.0.1:8787/callback`.
+`YOTO_REDIRECT_URI` is only needed for a different registered loopback URL.
+`YOTO_TOKEN_STORE` optionally changes the operating-system keychain service
+name. Never put access or refresh tokens in environment variables, `.env`
+files, source control, prompts, or logs.
 
 ## Use the skill
 
@@ -190,10 +177,16 @@ npm run yoto -- playlist preview-create --input /path/to/package \
 Save a preview JSON, show it to the user, and only after they confirm:
 
 ```bash
-npm run yoto -- playlist confirm --preview /tmp/yoto-preview.json --json
+npm run yoto -- playlist confirm --preview /tmp/yoto-preview.json \
+  --confirmation-file /tmp/yoto-confirmation \
+  --json
 npm run yoto -- playlist apply --preview /tmp/yoto-preview.json \
-  --confirmation-token TOKEN --json
+  --confirmation-file /tmp/yoto-confirmation \
+  --json
 ```
+
+The confirmation file is created with mode `0600`. Its short-lived token is
+never printed or placed in process arguments.
 
 Development checks:
 

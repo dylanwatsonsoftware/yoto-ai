@@ -23,13 +23,14 @@
    npm run build
    ```
 
-9. Make the ID available to the AI-agent process:
+9. Create the ignored local environment file:
 
    ```bash
-   export YOTO_CLIENT_ID="your-client-id"
+   cp .env.example .env
    ```
 
-10. Restart the agent from that environment if it was already running.
+10. Set `YOTO_CLIENT_ID` in `.env` to the copied public client ID. The CLI
+    loads this file automatically.
 11. From the skill directory, authenticate:
 
    ```bash
@@ -144,13 +145,13 @@ Do not fall back to plaintext token files.
 
 ### Client ID unavailable to the agent process
 
-Set it in the shell used to launch the agent:
+Create the ignored local environment file:
 
 ```bash
-export YOTO_CLIENT_ID="your-client-id"
+cp .env.example .env
 ```
 
-Restart the agent from that shell, then run:
+Set `YOTO_CLIENT_ID` in `.env`, then run:
 
 ```bash
 npm run yoto -- auth login --json

@@ -13,9 +13,11 @@ import {
 import { executeCommand } from "./commands.js";
 import {
   classifyError,
+  loadLocalEnvironmentFile,
   parseCliArguments,
   renderHuman,
-  requiresClientId
+  requiresClientId,
+  writePrivateFile
 } from "./cli-support.js";
 import { failureEnvelope, redact, successEnvelope } from "./output.js";
 import { YotoService } from "./yoto-service.js";
@@ -27,6 +29,8 @@ import {
   postYotoCard,
   waitForTranscode
 } from "./yoto-card.js";
+
+loadLocalEnvironmentFile();
 
 function audioContentType(format: string): string {
   const types: Record<string, string> = {
@@ -150,6 +154,9 @@ if (!clientId && requiresClientId(args)) {
         auth,
         service: new YotoService(sdk),
         readFile: (path) => readFile(path, "utf8"),
+        writeConfirmationFile: async (path, token) => {
+          await writePrivateFile(path, `${token}\n`);
+        },
         tokenStore: store,
         writeApi,
         confirmationSecret: process.env.YOTO_CONFIRMATION_SECRET,

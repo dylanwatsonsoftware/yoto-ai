@@ -1,9 +1,14 @@
+import { chmod, mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   classifyError,
+  loadLocalEnvironmentFile,
   parseCliArguments,
   renderHuman,
-  requiresClientId
+  requiresClientId,
+  writePrivateFile
 } from "./cli-support.js";
 import { UnsupportedOperationError, UsageError } from "./commands.js";
 
@@ -44,5 +49,29 @@ describe("CLI support", () => {
       json: true,
       outputPath: undefined
     });
+  });
+
+  it("loads an optional local .env file without requiring shell expansion", () => {
+    const loaded: string[] = [];
+
+    expect(
+      loadLocalEnvironmentFile({
+        exists: (path) => path === ".env",
+        load: (path) => loaded.push(path)
+      })
+    ).toBe(true);
+    expect(loaded).toEqual([".env"]);
+  });
+
+  it("locks confirmation files to the current user even when replacing one", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "yoto-confirmation-"));
+    const path = join(directory, "token");
+    await writeFile(path, "old");
+    await chmod(path, 0o644);
+
+    await writePrivateFile(path, "new");
+
+    expect((await stat(path)).mode & 0o777).toBe(0o600);
+    expect(await readFile(path, "utf8")).toBe("new");
   });
 });

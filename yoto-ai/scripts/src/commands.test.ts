@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { executeCommand, UnsupportedOperationError } from "./commands.js";
 import { MemoryTokenStore } from "./auth.js";
 import { YotoService } from "./yoto-service.js";
@@ -85,5 +85,79 @@ describe("executeCommand", () => {
       })
     ).rejects.toBeInstanceOf(UnsupportedOperationError);
   });
-});
 
+  it("passes confirmation through a protected file without returning the token", async () => {
+    const preview = {
+      version: 1 as const,
+      operation: "create" as const,
+      packageDirectory: "/package",
+      package: {
+        schemaVersion: 1 as const,
+        title: "Stories",
+        source: {
+          type: "local" as const,
+          id: "stories",
+          description: "test",
+          permission: "Owner-created"
+        },
+        cover: { path: "cover.png", sha256: "a".repeat(64) },
+        tracks: []
+      },
+      tracksToAdd: [],
+      duplicates: [],
+      confirmationsRequired: 1 as const
+    };
+    let confirmation = "";
+    const mutateCard = vi.fn(async () => ({ cardId: "new-card" }));
+    const dependencies = {
+      auth,
+      service,
+      readFile: async (path: string) =>
+        path === "preview.json" ? JSON.stringify(preview) : confirmation,
+      writeConfirmationFile: async (_path: string, value: string) => {
+        confirmation = value;
+      },
+      tokenStore: new MemoryTokenStore(),
+      confirmationSecret: "secret",
+      writeApi: {
+        uploadAudio: vi.fn(),
+        uploadCover: vi.fn(async () => ({ mediaUrl: "cover" })),
+        uploadIcon: vi.fn(),
+        mutateCard
+      }
+    };
+
+    const result = await executeCommand(
+      [
+        "playlist",
+        "confirm",
+        "--preview",
+        "preview.json",
+        "--confirmation-file",
+        "confirmation.json"
+      ],
+      dependencies
+    );
+
+    expect(result).toEqual({
+      confirmed: true,
+      confirmationFile: "confirmation.json",
+      expiresInSeconds: 900
+    });
+    expect(JSON.stringify(result)).not.toContain(confirmation);
+    expect(confirmation).not.toBe("");
+
+    await executeCommand(
+      [
+        "playlist",
+        "apply",
+        "--preview",
+        "preview.json",
+        "--confirmation-file",
+        "confirmation.json"
+      ],
+      dependencies
+    );
+    expect(mutateCard).toHaveBeenCalledOnce();
+  });
+});

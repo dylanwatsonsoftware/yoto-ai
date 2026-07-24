@@ -82,16 +82,16 @@ python3 -m pip install -r spotdl-audio-import/requirements.txt
 
 3. Enable the available library, content-management, and icon-management
    scopes.
-4. Export the client ID:
+4. Copy the ignored environment template and set `YOTO_CLIENT_ID` inside it:
 
    ```bash
-   export YOTO_CLIENT_ID="your-public-client-id"
+   cd yoto-ai
+   cp .env.example .env
    ```
 
 5. Sign in:
 
    ```bash
-   cd yoto-ai
    npm run yoto -- auth login --json
    ```
 
@@ -170,17 +170,20 @@ a possible duplicate exists, it stops and reports the candidate card IDs.
 After reviewing and explicitly confirming the complete preview:
 
 ```bash
-export YOTO_CONFIRMATION_SECRET="$(openssl rand -hex 32)"
-
 npm run yoto -- playlist confirm \
   --preview /tmp/yoto-preview.json \
+  --confirmation-file /tmp/yoto-confirmation \
   --json
 
 npm run yoto -- playlist apply \
   --preview /tmp/yoto-preview.json \
-  --confirmation-token "TOKEN" \
+  --confirmation-file /tmp/yoto-confirmation \
   --json
 ```
+
+The ignored `yoto-ai/.env` file supplies `YOTO_CONFIRMATION_SECRET`; its value
+never appears in a command. The mode-`0600` confirmation file keeps the
+short-lived token out of command arguments and output.
 
 Media uploads can resume from checksum-based checkpoints. The final Yoto card
 mutation is attempted exactly once and is never retried automatically.

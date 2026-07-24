@@ -22,6 +22,7 @@ interface CommandDependencies {
   auth: AuthCommands;
   service: YotoService;
   readFile(path: string): Promise<string>;
+  writeConfirmationFile?(path: string, token: string): Promise<void>;
   tokenStore: TokenStore;
   writeApi?: YotoWriteApi;
   confirmationSecret?: string;
@@ -121,14 +122,23 @@ export async function executeCommand(
     if (!dependencies.confirmationSecret) {
       throw new UsageError("YOTO_CONFIRMATION_SECRET is required");
     }
+    if (!dependencies.writeConfirmationFile) {
+      throw new UnsupportedOperationError(
+        "Secure confirmation file output is unavailable"
+      );
+    }
     const preview = JSON.parse(
       await dependencies.readFile(optionValue(args, "--preview"))
     ) as PublishPreview;
+    const confirmationFile = optionValue(args, "--confirmation-file");
+    await dependencies.writeConfirmationFile(
+      confirmationFile,
+      createConfirmationToken(preview, dependencies.confirmationSecret)
+    );
     return {
-      confirmationToken: createConfirmationToken(
-        preview,
-        dependencies.confirmationSecret
-      )
+      confirmed: true,
+      confirmationFile,
+      expiresInSeconds: 15 * 60
     };
   }
   if (group === "playlist" && action === "apply") {
@@ -141,9 +151,12 @@ export async function executeCommand(
     const preview = JSON.parse(
       await dependencies.readFile(optionValue(args, "--preview"))
     ) as PublishPreview;
+    const confirmationToken = (
+      await dependencies.readFile(optionValue(args, "--confirmation-file"))
+    ).trim();
     return applyPreview(
       preview,
-      optionValue(args, "--confirmation-token"),
+      confirmationToken,
       dependencies.confirmationSecret,
       dependencies.writeApi,
       dependencies.checkpoint

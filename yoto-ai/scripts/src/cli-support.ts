@@ -1,3 +1,6 @@
+import { existsSync } from "node:fs";
+import { open } from "node:fs/promises";
+import { loadEnvFile } from "node:process";
 import { ZodError } from "zod";
 import type { ErrorCode } from "./output.js";
 import { UnsupportedOperationError, UsageError } from "./commands.js";
@@ -7,6 +10,33 @@ export interface ClassifiedError {
   message: string;
   retryable: boolean;
   exitCode: number;
+}
+
+export function loadLocalEnvironmentFile(
+  dependencies: {
+    exists(path: string): boolean;
+    load(path: string): void;
+  } = {
+    exists: existsSync,
+    load: loadEnvFile
+  }
+): boolean {
+  if (!dependencies.exists(".env")) return false;
+  dependencies.load(".env");
+  return true;
+}
+
+export async function writePrivateFile(
+  path: string,
+  contents: string
+): Promise<void> {
+  const file = await open(path, "w", 0o600);
+  try {
+    await file.chmod(0o600);
+    await file.writeFile(contents);
+  } finally {
+    await file.close();
+  }
 }
 
 export function parseCliArguments(rawArgs: string[]): {
