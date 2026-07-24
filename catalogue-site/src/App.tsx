@@ -247,7 +247,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
     window.localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark"
   );
   const [layout, setLayout] = useState<Layout>(() =>
-    window.localStorage.getItem(LAYOUT_KEY) === "list" ? "list" : "gallery"
+    window.localStorage.getItem(LAYOUT_KEY) === "gallery" ? "gallery" : "list"
   );
   const favouriteIds = useMemo(() => new Set(favourites), [favourites]);
   const searchIndex = useMemo(
@@ -374,17 +374,13 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
         </button>
         <div>
           <span className="eyebrow">MYO Idea Exchange</span>
-          <h1>Find the next story.</h1>
+          <h1>Playlist catalogue</h1>
           <p>
-            A fast, visual index of playlists shared in the Yoto Make Your Own
-            catalogue.
+            <span>Playlists</span> {catalogue.stats.albums}
+            <b aria-hidden="true"> · </b>
+            <span>Collections</span> {catalogue.stats.collections}
           </p>
         </div>
-        <dl className="hero__stats">
-          <div><dt>Playlists</dt><dd>{catalogue.stats.albums}</dd></div>
-          <div><dt>Collections</dt><dd>{catalogue.stats.collections}</dd></div>
-          <div><dt>With covers</dt><dd>{catalogue.stats.covers}</dd></div>
-        </dl>
       </header>
 
       <main>
@@ -395,25 +391,6 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
           </p>
         )}
         <section className="discovery" aria-label="Catalogue filters">
-          <div className="view-switcher" aria-label="Catalogue view">
-            <button
-              type="button"
-              className={!showFavourites ? "view-switcher__active" : ""}
-              aria-pressed={!showFavourites}
-              onClick={() => setShowFavourites(false)}
-            >
-              All playlists
-            </button>
-            <button
-              type="button"
-              className={showFavourites ? "view-switcher__active" : ""}
-              aria-pressed={showFavourites}
-              onClick={() => setShowFavourites(true)}
-            >
-              <span aria-hidden="true">♥</span>{" "}
-              View {favourites.length} {favourites.length === 1 ? "favourite" : "favourites"}
-            </button>
-          </div>
           <label className="search">
             <span>Search catalogue</span>
             <input
@@ -431,51 +408,75 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
               placeholder="Title, folder, collection or track…"
             />
           </label>
-          <div className="filters">
-            <label>
-              <span>Playlist type</span>
-              <select value={state.kind} onChange={(event) => update("kind", event.target.value as CatalogueQuery["kind"])}>
-                <option value="all">All types</option>
-                <option value="archive">Archives</option>
-                <option value="expanded">Expanded folders</option>
-              </select>
-            </label>
-            <label>
-              <span>Collection</span>
-              <select value={state.collection} onChange={(event) => update("collection", event.target.value)}>
-                <option value="all">All collections</option>
-                {catalogue.collections.map((collection) => (
-                  <option key={collection.id} value={collection.id}>
-                    {collection.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              <span>Cover</span>
-              <select value={state.cover} onChange={(event) => update("cover", event.target.value as CatalogueQuery["cover"])}>
-                <option value="all">Any cover</option>
-                <option value="available">Cover available</option>
-                <option value="missing">No cover</option>
-              </select>
-            </label>
-            <label>
-              <span>Nesting depth</span>
-              <select value={state.depth} onChange={(event) => update("depth", event.target.value as CatalogueQuery["depth"])}>
-                <option value="all">Any depth</option>
-                <option value="1">Level 1</option>
-                <option value="2">Level 2</option>
-                <option value="3+">Level 3+</option>
-              </select>
-            </label>
-            <label>
-              <span>Sort by</span>
-              <select value={state.sort} onChange={(event) => update("sort", event.target.value as CatalogueQuery["sort"])}>
-                <option value="title">Title</option>
-                <option value="path">Folder path</option>
-                <option value="modified">Recently updated</option>
-              </select>
-            </label>
+          <div className="discovery__toolbar">
+            <div className="view-switcher" aria-label="Catalogue view">
+              <button
+                type="button"
+                className={!showFavourites ? "view-switcher__active" : ""}
+                aria-pressed={!showFavourites}
+                onClick={() => setShowFavourites(false)}
+              >
+                All playlists
+              </button>
+              <button
+                type="button"
+                className={showFavourites ? "view-switcher__active" : ""}
+                aria-pressed={showFavourites}
+                onClick={() => setShowFavourites(true)}
+              >
+                <span aria-hidden="true">♥</span>{" "}
+                View {favourites.length} {favourites.length === 1 ? "favourite" : "favourites"}
+              </button>
+            </div>
+            <details className="filter-drawer">
+              <summary>Filters</summary>
+              <div className="filters">
+                <label>
+                  <span>Playlist type</span>
+                  <select value={state.kind} onChange={(event) => update("kind", event.target.value as CatalogueQuery["kind"])}>
+                    <option value="all">All types</option>
+                    <option value="archive">Archives</option>
+                    <option value="expanded">Expanded folders</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Collection</span>
+                  <select value={state.collection} onChange={(event) => update("collection", event.target.value)}>
+                    <option value="all">All collections</option>
+                    {catalogue.collections.map((collection) => (
+                      <option key={collection.id} value={collection.id}>
+                        {collection.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>Cover</span>
+                  <select value={state.cover} onChange={(event) => update("cover", event.target.value as CatalogueQuery["cover"])}>
+                    <option value="all">Any cover</option>
+                    <option value="available">Cover available</option>
+                    <option value="missing">No cover</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Nesting depth</span>
+                  <select value={state.depth} onChange={(event) => update("depth", event.target.value as CatalogueQuery["depth"])}>
+                    <option value="all">Any depth</option>
+                    <option value="1">Level 1</option>
+                    <option value="2">Level 2</option>
+                    <option value="3+">Level 3+</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Sort by</span>
+                  <select value={state.sort} onChange={(event) => update("sort", event.target.value as CatalogueQuery["sort"])}>
+                    <option value="title">Title</option>
+                    <option value="path">Folder path</option>
+                    <option value="modified">Recently updated</option>
+                  </select>
+                </label>
+              </div>
+            </details>
           </div>
         </section>
 

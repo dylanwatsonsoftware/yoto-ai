@@ -230,7 +230,6 @@ describe("catalogue app", () => {
     const firstRender = render(<App catalogue={catalogue} />);
 
     await user.type(screen.getByRole("searchbox"), "Ada");
-    await user.click(screen.getByRole("button", { name: "List view" }));
     expect(screen.getByRole("button", { name: "List view" })).toHaveAttribute(
       "aria-pressed",
       "true"
@@ -248,6 +247,20 @@ describe("catalogue app", () => {
       "aria-pressed",
       "true"
     );
+  });
+
+  it("keeps advanced filters tucked away until requested", async () => {
+    const user = userEvent.setup();
+    render(<App catalogue={catalogue} />);
+
+    const filters = screen.getByText("Filters").closest("details");
+    expect(filters).not.toHaveAttribute("open");
+
+    await user.click(screen.getByText("Filters"));
+    expect(filters).toHaveAttribute("open");
+    expect(
+      screen.getByRole("combobox", { name: "Playlist type" })
+    ).toBeVisible();
   });
 
   it("shows folder subtitles for playlists and nested playlists", async () => {
