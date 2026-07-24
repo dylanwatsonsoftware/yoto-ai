@@ -3,6 +3,11 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import { validateCatalogue, type Catalogue } from "./catalogue";
 
+document.documentElement.dataset.theme =
+  window.localStorage.getItem("yoto-catalogue-theme") === "light"
+    ? "light"
+    : "dark";
+
 function CatalogueLoader() {
   const [catalogue, setCatalogue] = useState<Catalogue | null>(null);
   const [error, setError] = useState<string | null>(null);
