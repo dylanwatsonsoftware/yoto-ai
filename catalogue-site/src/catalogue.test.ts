@@ -211,6 +211,7 @@ describe("catalogue discovery", () => {
       cover: "available" as const,
       depth: "2" as const,
       sort: "path" as const,
+      includeOtherLanguages: false,
       selected: "ada"
     };
     expect(readCatalogueQuery(writeCatalogueQuery(state))).toEqual(state);

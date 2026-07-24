@@ -3,6 +3,7 @@ import {
   buildCatalogueSearchIndex,
   defaultFilters,
   filterAlbums,
+  isOtherLanguagePath,
   readCatalogueQuery,
   writeCatalogueQuery,
   type Album,
@@ -243,6 +244,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
   }));
   const [favourites, setFavourites] = useState<string[]>(readFavourites);
   const [showFavourites, setShowFavourites] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [theme, setTheme] = useState<Theme>(() =>
     window.localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark"
   );
@@ -270,7 +272,12 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
   const currentFolderId = currentFolder?.id ?? catalogue.root.id;
   const childFolders = browseMode
     ? catalogue.collections
-        .filter((collection) => collection.parentId === currentFolderId)
+        .filter(
+          (collection) =>
+            collection.parentId === currentFolderId &&
+            (state.includeOtherLanguages ||
+              !isOtherLanguagePath(collection.pathSegments))
+        )
         .sort((left, right) =>
           left.title.localeCompare(right.title, undefined, {
             numeric: true,
@@ -300,6 +307,13 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
   const selected = state.selected
     ? catalogue.albums.find((album) => album.id === state.selected)
     : undefined;
+  const hasActiveFilters =
+    Boolean(state.query) ||
+    state.kind !== "all" ||
+    state.collection !== "all" ||
+    state.cover !== "all" ||
+    state.depth !== "all" ||
+    state.includeOtherLanguages === true;
 
   useEffect(() => {
     const query = writeCatalogueQuery(state);
@@ -390,7 +404,10 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
             to publish the complete collection.
           </p>
         )}
-        <section className="discovery" aria-label="Catalogue filters">
+        <section
+          className={`discovery ${filtersOpen ? "discovery--filters-open" : ""}`}
+          aria-label="Catalogue filters"
+        >
           <label className="search">
             <span>Search catalogue</span>
             <input
@@ -428,7 +445,10 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
                 View {favourites.length} {favourites.length === 1 ? "favourite" : "favourites"}
               </button>
             </div>
-            <details className="filter-drawer">
+            <details
+              className="filter-drawer"
+              onToggle={(event) => setFiltersOpen(event.currentTarget.open)}
+            >
               <summary>Filters</summary>
               <div className="filters">
                 <label>
@@ -443,7 +463,13 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
                   <span>Collection</span>
                   <select value={state.collection} onChange={(event) => update("collection", event.target.value)}>
                     <option value="all">All collections</option>
-                    {catalogue.collections.map((collection) => (
+                    {catalogue.collections
+                      .filter(
+                        (collection) =>
+                          state.includeOtherLanguages ||
+                          !isOtherLanguagePath(collection.pathSegments)
+                      )
+                      .map((collection) => (
                       <option key={collection.id} value={collection.id}>
                         {collection.title}
                       </option>
@@ -474,6 +500,16 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
                     <option value="path">Folder path</option>
                     <option value="modified">Recently updated</option>
                   </select>
+                </label>
+                <label className="checkbox-filter">
+                  <input
+                    type="checkbox"
+                    checked={state.includeOtherLanguages}
+                    onChange={(event) =>
+                      update("includeOtherLanguages", event.target.checked)
+                    }
+                  />
+                  <span>Include other languages</span>
                 </label>
               </div>
             </details>
@@ -550,7 +586,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
                 </button>
               </div>
             )}
-            {(state.query || Object.entries(state).some(([key, value]) => key !== "sort" && key !== "selected" && value !== "all" && value !== "")) && (
+            {hasActiveFilters && (
               <button
                 type="button"
                 className="text-button"

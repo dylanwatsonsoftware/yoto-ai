@@ -259,8 +259,65 @@ describe("catalogue app", () => {
     await user.click(screen.getByText("Filters"));
     expect(filters).toHaveAttribute("open");
     expect(
+      screen.getByRole("region", { name: "Catalogue filters" })
+    ).toHaveClass("discovery--filters-open");
+    expect(
       screen.getByRole("combobox", { name: "Playlist type" })
     ).toBeVisible();
+  });
+
+  it("hides other-language content until it is explicitly included", async () => {
+    const user = userEvent.setup();
+    const languageCatalogue: Catalogue = {
+      ...catalogue,
+      stats: { ...catalogue.stats, albums: 3, collections: 3 },
+      collections: [
+        ...catalogue.collections,
+        {
+          id: "other-languages",
+          title: "Other Language Content",
+          path: "MYO/Other Language Content",
+          pathSegments: [
+            { id: "root", name: "MYO" },
+            { id: "other-languages", name: "Other Language Content" }
+          ],
+          depth: 1,
+          parentId: "root",
+          childCollectionIds: [],
+          albumIds: ["bonjour"],
+          nestedAlbumIds: ["bonjour"]
+        }
+      ],
+      albums: [
+        ...catalogue.albums,
+        {
+          ...catalogue.albums[1],
+          id: "bonjour",
+          title: "Bonjour les amis",
+          path: "MYO/Other Language Content/Bonjour les amis.zip",
+          pathSegments: [
+            { id: "root", name: "MYO" },
+            { id: "other-languages", name: "Other Language Content" },
+            { id: "bonjour", name: "Bonjour les amis.zip" }
+          ],
+          parentId: "other-languages",
+          parentCollectionId: "other-languages"
+        }
+      ]
+    };
+    render(<App catalogue={languageCatalogue} />);
+
+    expect(
+      screen.queryByRole("button", { name: "Clear filters" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Open folder Other Language Content" })
+    ).not.toBeInTheDocument();
+    await user.type(screen.getByRole("searchbox"), "Bonjour");
+    expect(screen.queryByText("Bonjour les amis")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("checkbox", { name: "Include other languages" }));
+    expect(screen.getByText("Bonjour les amis")).toBeInTheDocument();
   });
 
   it("shows folder subtitles for playlists and nested playlists", async () => {

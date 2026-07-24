@@ -71,6 +71,7 @@ export interface CatalogueFilters {
   cover: CoverFilter;
   depth: DepthFilter;
   sort: SortOrder;
+  includeOtherLanguages?: boolean;
 }
 
 export interface CatalogueQuery extends CatalogueFilters {
@@ -83,7 +84,8 @@ export const defaultFilters: CatalogueFilters = {
   collection: "all",
   cover: "all",
   depth: "all",
-  sort: "title"
+  sort: "title",
+  includeOtherLanguages: false
 };
 
 export function validateCatalogue(value: unknown): Catalogue {
@@ -164,6 +166,14 @@ function matchesDepth(depth: number, filter: DepthFilter): boolean {
   return depth === Number(filter);
 }
 
+export function isOtherLanguagePath(
+  pathSegments: ReadonlyArray<PathSegment>
+): boolean {
+  return pathSegments.some(
+    (part) => normalize(part.name) === "other language content"
+  );
+}
+
 export function filterAlbums(
   catalogue: Catalogue,
   filters: CatalogueFilters,
@@ -174,6 +184,8 @@ export function filterAlbums(
   return catalogue.albums
     .filter(
       (album) =>
+        (filters.includeOtherLanguages ||
+          !isOtherLanguagePath(album.pathSegments)) &&
         matchesQuery(searchIndex.get(album.id) ?? "", terms) &&
         (filters.kind === "all" || album.kind === filters.kind) &&
         (filters.collection === "all" ||
@@ -234,6 +246,7 @@ export function readCatalogueQuery(
     cover: oneOf(params.get("cover"), ["all", "available", "missing"], "all"),
     depth: oneOf(params.get("depth"), ["all", "1", "2", "3+"], "all"),
     sort: oneOf(params.get("sort"), ["title", "path", "modified"], "title"),
+    includeOtherLanguages: params.get("languages") === "all",
     ...(selected ? { selected } : {})
   };
 }
@@ -246,6 +259,7 @@ export function writeCatalogueQuery(state: CatalogueQuery): string {
   if (state.cover !== "all") params.set("cover", state.cover);
   if (state.depth !== "all") params.set("depth", state.depth);
   if (state.sort !== "title") params.set("sort", state.sort);
+  if (state.includeOtherLanguages) params.set("languages", "all");
   if (state.selected) params.set("album", state.selected);
   return params.toString();
 }

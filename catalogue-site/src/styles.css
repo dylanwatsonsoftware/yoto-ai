@@ -198,12 +198,17 @@ main {
 }
 
 .discovery {
+  position: relative;
   padding: 16px;
   background: color-mix(in srgb, var(--paper) 90%, transparent);
   border: 1px solid rgba(221, 213, 200, 0.9);
   border-radius: 16px;
   box-shadow: 0 12px 34px rgba(57, 40, 73, 0.07);
   backdrop-filter: blur(14px);
+}
+
+.discovery--filters-open {
+  z-index: 20;
 }
 
 .view-switcher {
@@ -309,6 +314,32 @@ main {
   background: var(--field);
   border: 1px solid var(--line);
   border-radius: 10px;
+}
+
+.filters .checkbox-filter {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 42px;
+  padding: 8px 10px;
+  background: var(--subtle);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.filters .checkbox-filter input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--purple);
+}
+
+.filters .checkbox-filter span {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.78rem;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .results-heading {
