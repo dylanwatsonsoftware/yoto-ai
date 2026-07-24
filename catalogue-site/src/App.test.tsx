@@ -102,6 +102,7 @@ describe("catalogue app", () => {
   beforeEach(() => {
     window.history.replaceState(null, "", "/");
     window.localStorage.clear();
+    document.documentElement.removeAttribute("data-theme");
   });
 
   it("searches and filters the read-only album grid", async () => {
@@ -200,5 +201,21 @@ describe("catalogue app", () => {
     expect(window.localStorage.getItem("yoto-catalogue-favourites")).toBe(
       '["bluey"]'
     );
+  });
+
+  it("switches to dark mode and restores the saved theme", async () => {
+    const user = userEvent.setup();
+    const firstRender = render(<App catalogue={catalogue} />);
+
+    await user.click(screen.getByRole("button", { name: /switch to dark mode/i }));
+    expect(document.documentElement).toHaveAttribute("data-theme", "dark");
+    expect(window.localStorage.getItem("yoto-catalogue-theme")).toBe("dark");
+    expect(
+      screen.getByRole("button", { name: /switch to light mode/i })
+    ).toHaveAttribute("aria-pressed", "true");
+
+    firstRender.unmount();
+    render(<App catalogue={catalogue} />);
+    expect(document.documentElement).toHaveAttribute("data-theme", "dark");
   });
 });

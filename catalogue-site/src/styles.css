@@ -12,6 +12,27 @@
   --purple-dark: #4d327f;
   --coral: #e77755;
   --shadow: 0 18px 50px rgba(57, 40, 73, 0.1);
+  --field: #fff;
+  --subtle: #f3eee5;
+  --soft-line: #eee8de;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color: #eee9f6;
+  background: #14111c;
+  --ink: #eee9f6;
+  --muted: #aaa2b7;
+  --paper: #211c2b;
+  --line: #40374d;
+  --purple: #a985e7;
+  --purple-dark: #bea1ee;
+  --coral: #f49372;
+  --shadow: 0 18px 50px rgba(0, 0, 0, 0.34);
+  --field: #292332;
+  --subtle: #2b2534;
+  --soft-line: #3a3245;
+  color-scheme: dark;
 }
 
 * {
@@ -76,6 +97,27 @@ select:focus-visible {
   bottom: -92px;
   border: 34px solid rgba(255, 255, 255, 0.08);
   border-radius: 50%;
+}
+
+.theme-toggle {
+  position: absolute;
+  z-index: 3;
+  top: 22px;
+  right: 22px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 13px;
+  color: #fffdf9;
+  background: rgba(255, 255, 255, 0.11);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+}
+
+.theme-toggle span {
+  font-size: 1rem;
 }
 
 .eyebrow {
@@ -160,7 +202,7 @@ main {
   z-index: 5;
   top: 14px;
   padding: 20px;
-  background: rgba(255, 253, 248, 0.9);
+  background: color-mix(in srgb, var(--paper) 90%, transparent);
   border: 1px solid rgba(221, 213, 200, 0.9);
   border-radius: 20px;
   box-shadow: 0 12px 34px rgba(57, 40, 73, 0.07);
@@ -207,7 +249,7 @@ main {
   width: 100%;
   padding: 14px 17px;
   color: var(--ink);
-  background: #fff;
+  background: var(--field);
   border: 1px solid var(--line);
   border-radius: 12px;
   font-size: 1.02rem;
@@ -224,7 +266,7 @@ main {
   width: 100%;
   padding: 11px 12px;
   color: var(--ink);
-  background: #fff;
+  background: var(--field);
   border: 1px solid var(--line);
   border-radius: 10px;
 }
@@ -269,7 +311,7 @@ main {
   height: 38px;
   padding: 0;
   color: var(--purple);
-  background: rgba(255, 253, 248, 0.94);
+  background: color-mix(in srgb, var(--paper) 94%, transparent);
   border: 1px solid var(--line);
   border-radius: 50%;
   cursor: pointer;
@@ -390,7 +432,7 @@ main {
   margin-top: 18px;
   padding-top: 13px;
   color: var(--muted);
-  border-top: 1px solid #eee8de;
+  border-top: 1px solid var(--soft-line);
   font-size: 0.7rem;
 }
 
@@ -408,7 +450,7 @@ main {
   width: 68px;
   height: 68px;
   color: var(--purple);
-  background: #eee6f8;
+  background: color-mix(in srgb, var(--purple) 18%, var(--paper));
   border-radius: 50%;
   font-family: Georgia, "Times New Roman", serif;
   font-size: 2rem;
@@ -454,7 +496,7 @@ main {
   right: 20px;
   padding: 9px 13px;
   color: var(--ink);
-  background: rgba(255, 253, 248, 0.92);
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
   border: 1px solid var(--line);
   border-radius: 999px;
   cursor: pointer;
@@ -545,8 +587,8 @@ main {
 .path {
   margin: 0;
   padding: 12px 14px;
-  color: #564d60;
-  background: #f3eee5;
+  color: var(--muted);
+  background: var(--subtle);
   border-radius: 9px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.8rem;
@@ -565,7 +607,7 @@ main {
   grid-template-columns: 34px 1fr;
   gap: 10px;
   padding: 10px 0;
-  border-bottom: 1px solid #eee8de;
+  border-bottom: 1px solid var(--soft-line);
 }
 
 .track-list li span {
@@ -584,14 +626,14 @@ main {
   align-items: center;
   gap: 8px;
   padding: 8px 11px;
-  background: #eee6f8;
+  background: color-mix(in srgb, var(--purple) 18%, var(--paper));
   border-radius: 8px;
 }
 
 .nested-list .favourite-button {
   width: 30px;
   height: 30px;
-  background: #fff;
+  background: var(--field);
 }
 
 .nested-list .favourite-button--active {

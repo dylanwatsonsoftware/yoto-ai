@@ -11,6 +11,8 @@ import {
 import "./styles.css";
 
 const FAVOURITES_KEY = "yoto-catalogue-favourites";
+const THEME_KEY = "yoto-catalogue-theme";
+type Theme = "light" | "dark";
 
 function readFavourites(): string[] {
   try {
@@ -225,6 +227,9 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
   }));
   const [favourites, setFavourites] = useState<string[]>(readFavourites);
   const [showFavourites, setShowFavourites] = useState(false);
+  const [theme, setTheme] = useState<Theme>(() =>
+    window.localStorage.getItem(THEME_KEY) === "dark" ? "dark" : "light"
+  );
   const favouriteIds = useMemo(() => new Set(favourites), [favourites]);
   const albums = useMemo(() => {
     const filtered = filterAlbums(catalogue, state);
@@ -249,6 +254,11 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
     window.localStorage.setItem(FAVOURITES_KEY, JSON.stringify(favourites));
   }, [favourites]);
 
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem(THEME_KEY, theme);
+  }, [theme]);
+
   const toggleFavourite = (album: Album) => {
     setFavourites((current) =>
       current.includes(album.id)
@@ -265,6 +275,16 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
   return (
     <div className="app-shell">
       <header className="hero">
+        <button
+          type="button"
+          className="theme-toggle"
+          aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+          aria-pressed={theme === "dark"}
+          onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")}
+        >
+          <span aria-hidden="true">{theme === "dark" ? "☀" : "☾"}</span>
+          {theme === "dark" ? "Light" : "Dark"}
+        </button>
         <div>
           <span className="eyebrow">MYO Idea Exchange</span>
           <h1>Find the next story.</h1>
