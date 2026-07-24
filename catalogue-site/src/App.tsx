@@ -110,12 +110,14 @@ function DetailDialog({
   catalogue,
   favourites,
   onToggleFavourite,
+  onNavigateToFolder,
   onClose
 }: {
   album: Album;
   catalogue: Catalogue;
   favourites: Set<string>;
   onToggleFavourite(album: Album): void;
+  onNavigateToFolder(collection: string): void;
   onClose(): void;
 }) {
   const nested = album.nestedAlbumIds
@@ -154,7 +156,17 @@ function DetailDialog({
               {album.pathSegments.slice(0, -1).map((segment, index) => (
                 <span key={segment.id}>
                   {index > 0 && <b aria-hidden="true">/</b>}
-                  {segment.name}
+                  <button
+                    type="button"
+                    aria-label={`Open folder ${segment.name}`}
+                    onClick={() =>
+                      onNavigateToFolder(
+                        segment.id === catalogue.root.id ? "all" : segment.id
+                      )
+                    }
+                  >
+                    {segment.name}
+                  </button>
                 </span>
               ))}
             </nav>
@@ -801,6 +813,15 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
           catalogue={catalogue}
           favourites={favouriteIds}
           onToggleFavourite={toggleFavourite}
+          onNavigateToFolder={(collection) => {
+            setSearchInput("");
+            navigate({
+              ...state,
+              query: "",
+              collection,
+              selected: undefined
+            });
+          }}
           onClose={() =>
             setState((current) => ({ ...current, selected: undefined }))
           }

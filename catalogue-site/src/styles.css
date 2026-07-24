@@ -857,6 +857,21 @@ main {
   color: #b9afc1;
 }
 
+.breadcrumbs button {
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.breadcrumbs button:hover {
+  color: var(--text);
+}
+
 .detail__facts {
   display: flex;
   flex-wrap: wrap;

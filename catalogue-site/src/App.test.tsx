@@ -253,6 +253,30 @@ describe("catalogue app", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
+  it("navigates from detail breadcrumbs and closes the playlist", async () => {
+    const user = userEvent.setup();
+    render(<App catalogue={catalogue} />);
+    await user.type(screen.getByRole("searchbox"), "Ada");
+    await user.click(
+      await screen.findByRole("button", { name: /open ada twist/i })
+    );
+
+    const dialog = screen.getByRole("dialog", { name: "Ada Twist" });
+    expect(
+      within(dialog).getByRole("button", { name: "Open folder MYO" })
+    ).toBeInTheDocument();
+    await user.click(
+      within(dialog).getByRole("button", { name: "Open folder Science" })
+    );
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("searchbox")).toHaveValue("");
+    expect(window.location.search).toBe("?collection=science");
+    expect(
+      screen.getByRole("button", { name: "Open Ada Twist" })
+    ).toBeInTheDocument();
+  });
+
   it("shows a useful empty state", async () => {
     const user = userEvent.setup();
     render(<App catalogue={catalogue} />);
