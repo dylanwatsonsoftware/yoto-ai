@@ -1,0 +1,38 @@
+{
+  "name": "yoto-ai-skill",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "yoto": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "yoto": "tsx scripts/src/cli.ts"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@yotoplay/yoto-sdk": "1.2.4",
+    "open": "^10.2.0",
+    "pkce-challenge": "^5.0.0",
+    "proper-lockfile": "^4.1.2",
+    "zod": "^4.1.12"
+  },
+  "optionalDependencies": {
+    "keytar": "^7.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.1",
+    "@types/proper-lockfile": "^4.1.4",
+    "@vitest/coverage-v8": "^4.0.16",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.16"
+  }
+}
+

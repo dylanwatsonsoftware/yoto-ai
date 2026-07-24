@@ -1,0 +1,36 @@
+{
+  "title": "Bedtime stories",
+  "content": {
+    "playbackType": "linear",
+    "chapters": [
+      {
+        "key": "chapter-1",
+        "title": "Chapter one",
+        "defaultTrackDisplay": "1",
+        "defaultTrackAmbient": "none",
+        "display": {},
+        "tracks": [
+          {
+            "key": "track-1",
+            "uid": "track-1",
+            "title": "The beginning",
+            "trackUrl": "https://example.com/audio.mp3",
+            "format": "mp3",
+            "type": "audio",
+            "duration": 30,
+            "fileSize": 1024,
+            "display": {}
+          }
+        ]
+      }
+    ]
+  },
+  "metadata": {
+    "category": "stories",
+    "source": {
+      "description": "Original recording",
+      "permission": "Created by the account owner"
+    }
+  }
+}
+

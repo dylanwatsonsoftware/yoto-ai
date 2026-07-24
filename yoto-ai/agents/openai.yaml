@@ -1,0 +1,4 @@
+interface:
+  display_name: "Yoto AI"
+  short_description: "Safely inspect Yoto devices and create drafts"
+  default_prompt: "Use $yoto-ai to inspect my Yoto library or prepare a validated playlist draft."
