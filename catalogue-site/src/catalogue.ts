@@ -75,6 +75,7 @@ export interface CatalogueFilters {
 }
 
 export interface CatalogueQuery extends CatalogueFilters {
+  view?: "favourites";
   selected?: string;
 }
 
@@ -239,6 +240,8 @@ export function readCatalogueQuery(
       ? new URLSearchParams(query.startsWith("?") ? query.slice(1) : query)
       : query;
   const selected = params.get("album") || undefined;
+  const view =
+    params.get("view") === "favourites" ? ("favourites" as const) : undefined;
   return {
     query: params.get("q") ?? "",
     kind: oneOf(params.get("kind"), ["all", "archive", "expanded"], "all"),
@@ -247,6 +250,7 @@ export function readCatalogueQuery(
     depth: oneOf(params.get("depth"), ["all", "1", "2", "3+"], "all"),
     sort: oneOf(params.get("sort"), ["title", "path", "modified"], "title"),
     includeOtherLanguages: params.get("languages") === "all",
+    ...(view ? { view } : {}),
     ...(selected ? { selected } : {})
   };
 }
@@ -260,6 +264,7 @@ export function writeCatalogueQuery(state: CatalogueQuery): string {
   if (state.depth !== "all") params.set("depth", state.depth);
   if (state.sort !== "title") params.set("sort", state.sort);
   if (state.includeOtherLanguages) params.set("languages", "all");
+  if (state.view === "favourites") params.set("view", "favourites");
   if (state.selected) params.set("album", state.selected);
   return params.toString();
 }

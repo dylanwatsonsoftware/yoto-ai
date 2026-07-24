@@ -266,7 +266,6 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
   const [searchInput, setSearchInput] = useState(state.query);
   const [resultLimit, setResultLimit] = useState(RESULTS_BATCH_SIZE);
   const [favourites, setFavourites] = useState<string[]>(readFavourites);
-  const [showFavourites, setShowFavourites] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
   const [theme, setTheme] = useState<Theme>(() =>
@@ -275,6 +274,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
   const [layout, setLayout] = useState<Layout>(() =>
     window.localStorage.getItem(LAYOUT_KEY) === "gallery" ? "gallery" : "list"
   );
+  const showFavourites = state.view === "favourites";
   const favouriteIds = useMemo(() => new Set(favourites), [favourites]);
   const favouriteAlbums = useMemo(
     () => catalogue.albums.filter((album) => favouriteIds.has(album.id)),
@@ -486,7 +486,9 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
                 type="button"
                 className={!showFavourites ? "view-switcher__active" : ""}
                 aria-pressed={!showFavourites}
-                onClick={() => setShowFavourites(false)}
+                onClick={() =>
+                  navigate({ ...state, view: undefined, selected: undefined })
+                }
               >
                 All playlists
               </button>
@@ -494,7 +496,9 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
                 type="button"
                 className={showFavourites ? "view-switcher__active" : ""}
                 aria-pressed={showFavourites}
-                onClick={() => setShowFavourites(true)}
+                onClick={() =>
+                  navigate({ ...state, view: "favourites", selected: undefined })
+                }
               >
                 <span aria-hidden="true">♥</span>{" "}
                 View {favourites.length} {favourites.length === 1 ? "favourite" : "favourites"}
@@ -647,7 +651,10 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
                 className="text-button"
                 onClick={() => {
                   setSearchInput("");
-                  setState({ ...defaultFilters });
+                  setState({
+                    ...defaultFilters,
+                    ...(showFavourites ? { view: "favourites" as const } : {})
+                  });
                 }}
               >
                 Clear filters

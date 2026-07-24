@@ -438,6 +438,30 @@ describe("catalogue app", () => {
     ).toBeInTheDocument();
   });
 
+  it("deep-links to favourites and keeps view changes in the URL", async () => {
+    window.localStorage.setItem("yoto-catalogue-favourites", '["ada"]');
+    window.history.replaceState(null, "", "/?view=favourites");
+    const user = userEvent.setup();
+    render(<App catalogue={catalogue} />);
+
+    expect(
+      screen.getByRole("button", { name: /view 1 favourite/i })
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByText("Ada Twist")).toBeInTheDocument();
+    expect(screen.queryByText("Bluey Dance")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Copy AI skill prompt" })
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "All playlists" }));
+    expect(window.location.search).not.toContain("view=favourites");
+
+    await user.click(
+      screen.getByRole("button", { name: /view 1 favourite/i })
+    );
+    expect(window.location.search).toContain("view=favourites");
+  });
+
   it("can favourite a nested album from its parent detail view", async () => {
     const user = userEvent.setup();
     const nestedCatalogue: Catalogue = {

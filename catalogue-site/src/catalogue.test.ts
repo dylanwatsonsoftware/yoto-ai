@@ -212,6 +212,7 @@ describe("catalogue discovery", () => {
       depth: "2" as const,
       sort: "path" as const,
       includeOtherLanguages: false,
+      view: "favourites" as const,
       selected: "ada"
     };
     expect(readCatalogueQuery(writeCatalogueQuery(state))).toEqual(state);
