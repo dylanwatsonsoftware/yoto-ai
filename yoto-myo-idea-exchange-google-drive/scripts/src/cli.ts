@@ -7,6 +7,10 @@ import { buildPlaylistPackage } from "./package-builder.js";
 import { extractArchive } from "./archive.js";
 import { spawn } from "node:child_process";
 import { assertUnderIdeaExchangeRoot } from "./layout.js";
+import {
+  buildPublicCatalogue,
+  type DriveSnapshotItem
+} from "./cache.js";
 
 function value(args: string[], name: string): string {
   const index = args.indexOf(name);
@@ -88,6 +92,28 @@ async function main(): Promise<unknown> {
   if (args[0] === "archive" && args[1] === "extract") {
     await extractArchive(value(args, "--input"), value(args, "--output"));
     return { extracted: true };
+  }
+  if (args[0] === "cache" && args[1] === "build") {
+    const payload = JSON.parse(
+      await readFile(value(args, "--input"), "utf8")
+    ) as
+      | DriveSnapshotItem[]
+      | {
+          items: DriveSnapshotItem[];
+          complete?: boolean;
+          incompleteWindows?: string[];
+        };
+    const items = Array.isArray(payload) ? payload : payload.items;
+    const complete =
+      Array.isArray(payload) ||
+      (payload.complete === true &&
+        (payload.incompleteWindows?.length ?? 0) === 0);
+    return buildPublicCatalogue({
+      items,
+      coversDirectory: value(args, "--covers"),
+      outputDirectory: value(args, "--output"),
+      scanComplete: complete
+    });
   }
   throw new Error("Unknown command");
 }

@@ -39,6 +39,43 @@ npm run catalogue -- index rebuild --json
 
 Drive is authoritative; the local index is disposable. A complete rescan tombstones indexed entries no longer returned.
 
+## Website cache workflow
+
+Use this workflow when the user asks to refresh, rebuild, or update the public
+MYO catalogue website. Keep Drive read-only and export only the allowlisted
+public catalogue fields.
+
+1. Recursively refresh root `12ueGfirgSd21B7ShXZiATmrZCl3J4OqI` using the
+   connected Drive tool and the index rules above.
+2. Write the complete connector snapshot to `/tmp/drive-items.json`. Include
+   only `id`, `parentId`, `path`, `title`, `mimeType`, `size`, `modifiedTime`,
+   and checksum. Include the root folder itself.
+3. Treat `.zip` and `.7z` files as opaque albums. Never download or inspect
+   their contents.
+4. Detect selected covers using the package precedence rules. For archive
+   albums, prefer an adjacent image with the same filename stem. Use a folder
+   cover for an archive only when exactly one album is present in that folder.
+5. Download only selected cover files into `/tmp/drive-covers`, naming each
+   file `<DRIVE_ID>.<extension>`. Do not download audio.
+6. Export the versioned JSON and normalized WebP thumbnails atomically:
+
+```bash
+npm run catalogue -- cache build \
+  --input /tmp/drive-items.json \
+  --covers /tmp/drive-covers \
+  --output ../catalogue-site/public/catalogue \
+  --json
+```
+
+7. Run both projects' tests, checks, and production build. Report album,
+   collection, and cover counts. The generated cache is intended to be
+   committed so Vercel can deploy it without Drive credentials.
+
+The export preserves ordered path segments, parent and ancestor relationships,
+collection nesting, and visible track names for expanded folders. It excludes
+owners, emails, permissions, tokens, and account metadata. A failed export
+must leave the previous complete cache unchanged.
+
 ## Nested-folder choices
 
 Whenever a search result or selected item is inside a folder, list that folder's direct children before downloading. Identify every playlist candidate among them:
