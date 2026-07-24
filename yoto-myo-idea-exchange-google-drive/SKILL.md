@@ -65,9 +65,13 @@ public catalogue fields.
    and checksum. Include the root folder itself.
 3. Treat `.zip` and `.7z` files as opaque albums. Never download or inspect
    their contents.
-4. Detect selected covers using the package precedence rules. For archive
-   albums, prefer an adjacent image with the same filename stem. Use a folder
-   cover for an archive only when exactly one album is present in that folder.
+4. Detect selected covers using the package precedence rules. For expanded
+   albums, search all descendants recursively for `cover_image.*`, `cover.*`,
+   then `folder.*`; if none exists, use a fallback only when the album has
+   exactly one descendant image. Never guess between multiple fallback images.
+   For archive albums, prefer an adjacent image with the same filename stem.
+   Use a folder cover for an archive only when exactly one album is present in
+   that folder. Keep archives opaque and report when no external cover exists.
 5. Download only selected cover files into `/tmp/drive-covers`, naming each
    file `<DRIVE_ID>.<extension>`. Do not download audio.
 6. Export the versioned JSON and normalized WebP thumbnails atomically:

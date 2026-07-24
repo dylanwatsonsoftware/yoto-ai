@@ -166,6 +166,130 @@ describe("public catalogue cache", () => {
     ).toEqual(catalogue);
   });
 
+  it("finds a canonical cover nested inside an expanded playlist", async () => {
+    const temporary = await mkdtemp(join(tmpdir(), "catalogue-cache-"));
+    const covers = join(temporary, "covers");
+    await mkdir(covers);
+    await sharp({
+      create: {
+        width: 300,
+        height: 400,
+        channels: 4,
+        background: "#d3263f"
+      }
+    })
+      .png()
+      .toFile(join(covers, "nested-cover.png"));
+
+    const catalogue = await buildPublicCatalogue({
+      items: [
+        item({
+          id: IDEA_EXCHANGE_ROOT_ID,
+          parentId: IDEA_EXCHANGE_ROOT_ID,
+          title: "MYO",
+          path: "MYO",
+          mimeType: "application/vnd.google-apps.folder"
+        }),
+        item({
+          id: "album",
+          title: "5 Minute Spider-Man Stories",
+          path: "MYO/5 Minute Spider-Man Stories",
+          mimeType: "application/vnd.google-apps.folder"
+        }),
+        item({
+          id: "audio",
+          parentId: "album",
+          title: "audio_files",
+          path: "MYO/5 Minute Spider-Man Stories/audio_files",
+          mimeType: "application/vnd.google-apps.folder"
+        }),
+        item({
+          id: "track",
+          parentId: "audio",
+          title: "01 Spider-Man.mp3",
+          path: "MYO/5 Minute Spider-Man Stories/audio_files/01 Spider-Man.mp3",
+          mimeType: "audio/mpeg"
+        }),
+        item({
+          id: "images",
+          parentId: "album",
+          title: "images",
+          path: "MYO/5 Minute Spider-Man Stories/images",
+          mimeType: "application/vnd.google-apps.folder"
+        }),
+        item({
+          id: "nested-cover",
+          parentId: "images",
+          title: "cover_image.png",
+          path: "MYO/5 Minute Spider-Man Stories/images/cover_image.png",
+          mimeType: "image/png"
+        })
+      ],
+      coversDirectory: covers,
+      outputDirectory: join(temporary, "output")
+    });
+
+    expect(catalogue.albums[0].cover).toMatchObject({
+      sourceId: "nested-cover",
+      path: "covers/album.webp"
+    });
+  });
+
+  it("uses the only descendant image when an expanded playlist has no canonical cover name", async () => {
+    const temporary = await mkdtemp(join(tmpdir(), "catalogue-cache-"));
+    const covers = join(temporary, "covers");
+    await mkdir(covers);
+    await sharp({
+      create: {
+        width: 300,
+        height: 400,
+        channels: 4,
+        background: "#6f4aa8"
+      }
+    })
+      .jpeg()
+      .toFile(join(covers, "only-image.jpg"));
+
+    const catalogue = await buildPublicCatalogue({
+      items: [
+        item({
+          id: IDEA_EXCHANGE_ROOT_ID,
+          parentId: IDEA_EXCHANGE_ROOT_ID,
+          title: "MYO",
+          path: "MYO",
+          mimeType: "application/vnd.google-apps.folder"
+        }),
+        item({
+          id: "album",
+          title: "5 Minute Ada Twist Scientist Stories",
+          path: "MYO/5 Minute Ada Twist Scientist Stories",
+          mimeType: "application/vnd.google-apps.folder"
+        }),
+        item({
+          id: "track",
+          parentId: "album",
+          title: "01 Introduction.mp3",
+          path: "MYO/5 Minute Ada Twist Scientist Stories/01 Introduction.mp3",
+          mimeType: "audio/mpeg"
+        }),
+        item({
+          id: "only-image",
+          parentId: "album",
+          title: "5 Minute Ada Twist.jpg",
+          path: "MYO/5 Minute Ada Twist Scientist Stories/5 Minute Ada Twist.jpg",
+          mimeType: "image/jpeg"
+        })
+      ],
+      coversDirectory: covers,
+      outputDirectory: join(temporary, "output")
+    });
+
+    expect(catalogue.albums[0].cover).toMatchObject({
+      sourceId: "only-image",
+      path: "covers/album.webp"
+    });
+  });
+
   it("reuses unchanged covers and removes orphaned output atomically", async () => {
     const temporary = await mkdtemp(join(tmpdir(), "catalogue-cache-"));
     const covers = join(temporary, "covers");

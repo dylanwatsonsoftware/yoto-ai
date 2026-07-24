@@ -205,10 +205,9 @@ function selectCovers(
     albumsByParent.set(album.parentId, siblings);
   }
   for (const album of albums) {
-    const directChildren = children.get(album.id) ?? [];
     if (isFolder(album)) {
-      const ranked = directChildren
-        .filter(isImage)
+      const imageCandidates = descendantsOf(album.id, children).filter(isImage);
+      const ranked = imageCandidates
         .map((item) => ({ item, rank: coverRank(item) }))
         .filter(
           (entry): entry is { item: DriveSnapshotItem; rank: number } =>
@@ -223,6 +222,10 @@ function selectCovers(
       const selected = ranked[0]?.item;
       if (selected) {
         result.set(album.id, selected);
+        continue;
+      }
+      if (imageCandidates.length === 1) {
+        result.set(album.id, imageCandidates[0]);
         continue;
       }
     } else {
