@@ -753,7 +753,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
         {showFavourites && favouriteAlbums.length > 0 && (
           <section className="favourites-export" aria-label="Create favourites in Yoto">
             <div>
-              <strong>Create these playlists with Codex</strong>
+              <strong>Create these playlists with an AI skill</strong>
               <span>
                 Copy a ready-to-use prompt for all {favouriteAlbums.length}{" "}
                 {favouriteAlbums.length === 1 ? "favourite" : "favourites"}.
@@ -772,7 +772,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
                 }
               }}
             >
-              Copy Codex prompt
+              Copy AI skill prompt
             </button>
             {copyStatus !== "idle" && (
               <span className="copy-status" role="status">

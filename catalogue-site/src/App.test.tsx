@@ -415,7 +415,7 @@ describe("catalogue app", () => {
 
     const writeText = vi.spyOn(navigator.clipboard, "writeText");
     await user.click(
-      screen.getByRole("button", { name: "Copy Codex prompt" })
+      screen.getByRole("button", { name: "Copy AI skill prompt" })
     );
     expect(writeText).toHaveBeenCalledWith(
       expect.stringContaining("$yoto-myo-idea-exchange-google-drive")
