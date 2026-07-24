@@ -525,6 +525,47 @@ main {
   background: var(--purple-dark);
 }
 
+.favourites-export {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 24px;
+  padding: 18px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.favourites-export div {
+  display: grid;
+  gap: 4px;
+}
+
+.favourites-export div span,
+.copy-status {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.favourites-export button {
+  flex: 0 0 auto;
+  padding: 11px 15px;
+  color: #fff;
+  background: var(--purple);
+  border: 0;
+  border-radius: 999px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.copy-status {
+  position: absolute;
+  right: 18px;
+  bottom: -20px;
+}
+
 .album-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
@@ -1025,6 +1066,15 @@ footer {
 
   .filters label:last-child {
     grid-column: 1 / -1;
+  }
+
+  .favourites-export {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .favourites-export button {
+    width: 100%;
   }
 
   .folder-grid {

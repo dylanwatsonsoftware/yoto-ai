@@ -69,6 +69,22 @@ function playlistFolder(album: Album, catalogue: Catalogue): string {
   );
 }
 
+function buildYotoCreationPrompt(albums: Album[]): string {
+  const items = albums
+    .map(
+      (album) =>
+        `- ${album.title} — ${album.path}\n  Source: ${album.driveUrl}`
+    )
+    .join("\n");
+
+  return `Use $yoto-myo-idea-exchange-google-drive to locate each selected item below in the Yoto MYO Idea Exchange Google Drive and prepare a separate portable Yoto playlist package for each one. Keep Drive read-only. Treat this as an explicit selection of these exact items; report any sibling playlist candidates required by the skill, but do not substitute or add unlisted items.
+
+Then use $yoto-ai to authenticate with Yoto, validate every package, inspect the live library for exact or similar duplicate titles, and prepare one consolidated preview that creates one Yoto playlist per selected item. Show me the complete operation and ask exactly once for explicit confirmation. Only after I confirm, publish the whole operation and wait for every upload and transcode to complete.
+
+Selected playlists:
+${items}`;
+}
+
 function AlbumArtwork({ album, large = false }: { album: Album; large?: boolean }) {
   return (
     <div className={`artwork ${large ? "artwork--large" : ""}`}>
@@ -252,6 +268,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
   const [favourites, setFavourites] = useState<string[]>(readFavourites);
   const [showFavourites, setShowFavourites] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
   const [theme, setTheme] = useState<Theme>(() =>
     window.localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark"
   );
@@ -259,6 +276,10 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
     window.localStorage.getItem(LAYOUT_KEY) === "gallery" ? "gallery" : "list"
   );
   const favouriteIds = useMemo(() => new Set(favourites), [favourites]);
+  const favouriteAlbums = useMemo(
+    () => catalogue.albums.filter((album) => favouriteIds.has(album.id)),
+    [catalogue.albums, favouriteIds]
+  );
   const searchIndex = useMemo(
     () => buildCatalogueSearchIndex(catalogue),
     [catalogue]
@@ -728,6 +749,39 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
           >
             Load {Math.min(RESULTS_BATCH_SIZE, remainingAlbums)} more playlists
           </button>
+        )}
+        {showFavourites && favouriteAlbums.length > 0 && (
+          <section className="favourites-export" aria-label="Create favourites in Yoto">
+            <div>
+              <strong>Create these playlists with Codex</strong>
+              <span>
+                Copy a ready-to-use prompt for all {favouriteAlbums.length}{" "}
+                {favouriteAlbums.length === 1 ? "favourite" : "favourites"}.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(
+                    buildYotoCreationPrompt(favouriteAlbums)
+                  );
+                  setCopyStatus("copied");
+                } catch {
+                  setCopyStatus("failed");
+                }
+              }}
+            >
+              Copy Codex prompt
+            </button>
+            {copyStatus !== "idle" && (
+              <span className="copy-status" role="status">
+                {copyStatus === "copied"
+                  ? "Prompt copied"
+                  : "Could not copy the prompt"}
+              </span>
+            )}
+          </section>
         )}
       </main>
       <footer>

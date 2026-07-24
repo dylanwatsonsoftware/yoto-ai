@@ -413,6 +413,21 @@ describe("catalogue app", () => {
     expect(screen.queryByText("Bluey Dance")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "1 favourite" })).toBeInTheDocument();
 
+    const writeText = vi.spyOn(navigator.clipboard, "writeText");
+    await user.click(
+      screen.getByRole("button", { name: "Copy Codex prompt" })
+    );
+    expect(writeText).toHaveBeenCalledWith(
+      expect.stringContaining("$yoto-myo-idea-exchange-google-drive")
+    );
+    expect(writeText).toHaveBeenCalledWith(
+      expect.stringContaining("$yoto-ai")
+    );
+    expect(writeText).toHaveBeenCalledWith(
+      expect.stringContaining("Ada Twist — MYO/Science/Ada Twist")
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("Prompt copied");
+
     firstRender.unmount();
     render(<App catalogue={catalogue} />);
     expect(
