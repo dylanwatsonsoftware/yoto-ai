@@ -41,7 +41,10 @@ Use JSON mode for orchestration. Never include command output containing persona
 4. For append-by-name requests, run `library list`, require exactly one exact title match, show its card ID, then preview with that ID. Reject zero or multiple exact matches.
 5. Show one consolidated preview containing every audio, cover, icon, duplicate decision, and final card change. Ask exactly one confirmation.
 6. Only after explicit confirmation, run `playlist confirm --preview <file> --json`, then pass its token to `playlist apply`.
-7. Refuse deletion, player commands, settings changes, TTS, and streaming.
+7. Let `playlist apply` resume any checkpointed upload IDs and poll until Yoto
+   returns `transcodedSha256` and `transcodedInfo`. A transcode-start response is
+   not a completed upload.
+8. Refuse deletion, player commands, settings changes, TTS, and streaming.
 
 ## Authentication recovery
 
@@ -69,7 +72,14 @@ restart the agent with a new environment variable.
 
 - Never print, store in files, or send access or refresh tokens to an LLM.
 - Keep refresh tokens only in the operating-system keychain.
-- Never retry the final card mutation automatically. Media uploads may resume by checksum, but inspect the preview and checkpoint before recovery.
+- Never retry the final card mutation automatically. Media uploads may resume
+  by checksum and pending upload ID, but inspect the preview and checkpoint
+  before recovery.
+- Build audio references from `transcodedSha256`, map `m4a` to Yoto's `x-m4a`
+  card format, and use Yoto's completed duration, size, and channel metadata.
+- Map uploaded icons to `display.icon16x16` as `yoto:#<mediaId>` and uploaded
+  covers to `metadata.cover.imageL`.
+- Surface Yoto's response body when the final card mutation fails.
 - Treat child-related names, emails, listening activity, and content as sensitive.
 - Require HTTPS for remote track URLs.
 - Require provenance and permission for every playlist draft.

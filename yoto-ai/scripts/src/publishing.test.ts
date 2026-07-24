@@ -100,7 +100,14 @@ describe("Yoto publishing", () => {
       })
     };
     const api = {
-      uploadAudio: vi.fn(async () => ({ url: "uploaded" })),
+      isAudioComplete: vi.fn(
+        (value: unknown) =>
+          Boolean((value as { transcodedSha256?: string })?.transcodedSha256)
+      ),
+      uploadAudio: vi.fn(async (_track, _root, previous) => ({
+        transcodedSha256: "complete",
+        resumedFrom: previous
+      })),
       uploadCover: vi.fn(async () => ({ mediaUrl: "cover" })),
       uploadIcon: vi.fn(async () => ({ mediaUrl: "icon" })),
       mutateCard: vi.fn(async () => {
@@ -112,7 +119,13 @@ describe("Yoto publishing", () => {
     await expect(
       applyPreview(preview, token, "secret", api, checkpoint)
     ).rejects.toThrow("final mutation failed");
-    expect(api.uploadAudio).toHaveBeenCalledTimes(1);
+    expect(api.uploadAudio).toHaveBeenCalledTimes(2);
+    expect(api.uploadAudio).toHaveBeenCalledWith(
+      expect.anything(),
+      "/package",
+      { url: "already-uploaded" },
+      expect.any(Function)
+    );
     expect(api.mutateCard).toHaveBeenCalledTimes(1);
   });
 });

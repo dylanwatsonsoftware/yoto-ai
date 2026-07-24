@@ -9,6 +9,24 @@ export interface ClassifiedError {
   exitCode: number;
 }
 
+export function parseCliArguments(rawArgs: string[]): {
+  args: string[];
+  json: boolean;
+  outputPath: string | undefined;
+} {
+  const outputIndex = rawArgs.indexOf("--output");
+  const outputPath = outputIndex >= 0 ? rawArgs[outputIndex + 1] : undefined;
+  return {
+    args: rawArgs.filter(
+      (argument, index) =>
+        argument !== "--json" &&
+        (outputIndex < 0 || (index !== outputIndex && index !== outputIndex + 1))
+    ),
+    json: rawArgs.includes("--json"),
+    outputPath
+  };
+}
+
 export function requiresClientId(args: string[]): boolean {
   return !(
     args[0] === "playlist" &&

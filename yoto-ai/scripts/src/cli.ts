@@ -11,20 +11,38 @@ import {
   TokenManager
 } from "./auth.js";
 import { executeCommand } from "./commands.js";
-import { classifyError, renderHuman, requiresClientId } from "./cli-support.js";
+import {
+  classifyError,
+  parseCliArguments,
+  renderHuman,
+  requiresClientId
+} from "./cli-support.js";
 import { failureEnvelope, redact, successEnvelope } from "./output.js";
 import { YotoService } from "./yoto-service.js";
 import type { YotoWriteApi } from "./publishing.js";
 import { JsonUploadCheckpoint } from "./checkpoint.js";
+import {
+  buildYotoCard,
+  isCompletedTranscode,
+  postYotoCard,
+  waitForTranscode
+} from "./yoto-card.js";
+
+function audioContentType(format: string): string {
+  const types: Record<string, string> = {
+    mp3: "audio/mpeg",
+    m4a: "audio/mp4",
+    aac: "audio/aac",
+    wav: "audio/wav",
+    flac: "audio/flac",
+    ogg: "audio/ogg",
+    opus: "audio/ogg"
+  };
+  return types[format.toLowerCase()] || "application/octet-stream";
+}
 
 const rawArgs = process.argv.slice(2);
-const json = rawArgs.includes("--json");
-const outputIndex = rawArgs.indexOf("--output");
-const outputPath = outputIndex >= 0 ? rawArgs[outputIndex + 1] : undefined;
-const args = rawArgs.filter(
-  (argument, index) =>
-    argument !== "--json" && index !== outputIndex && index !== outputIndex + 1
-);
+const { args, json, outputPath } = parseCliArguments(rawArgs);
 const clientId = process.env.YOTO_CLIENT_ID;
 
 if (!clientId && requiresClientId(args)) {
@@ -61,14 +79,29 @@ if (!clientId && requiresClientId(args)) {
     }
   };
   const writeApi: YotoWriteApi = {
-    uploadAudio: async (track, root) => {
+    isAudioComplete: isCompletedTranscode,
+    uploadAudio: async (track, root, previous, saveCheckpoint) => {
       const yoto = createYotoSdk({ jwt: await tokenManager.getAccessToken(), retries: 0 });
-      const upload = await yoto.media.getUploadUrlForTranscode(
-        track.audio.sha256,
-        basename(track.audio.path)
+      let uploadId = (previous as { uploadId?: string } | null)?.uploadId;
+      if (!uploadId) {
+        const upload = await yoto.media.getUploadUrlForTranscode(
+          track.audio.sha256,
+          basename(track.audio.path)
+        );
+        const response = await fetch(upload.uploadUrl, {
+          method: "PUT",
+          headers: { "Content-Type": audioContentType(track.audio.format) },
+          body: await readFile(join(root, track.audio.path))
+        });
+        if (!response.ok) {
+          throw new Error(`Audio upload failed (${response.status}): ${await response.text()}`);
+        }
+        uploadId = upload.uploadId;
+        await saveCheckpoint({ uploadId });
+      }
+      return waitForTranscode(uploadId, (id) =>
+        yoto.media.getTranscodedUpload(id, true)
       );
-      await yoto.media.uploadFile(upload.uploadUrl, await readFile(join(root, track.audio.path)));
-      return yoto.media.getTranscodedUpload(upload.uploadId, true);
     },
     uploadCover: async (cover, root) => {
       const response = await fetch(
@@ -101,48 +134,13 @@ if (!clientId && requiresClientId(args)) {
       return response.json();
     },
     mutateCard: async ({ preview, audio, cover, icons }) => {
-      const previous = preview.existing?.metadata as
-        | { content?: Record<string, unknown>; metadata?: Record<string, unknown> }
-        | undefined;
-      const existingChapters =
-        (previous?.content?.chapters as unknown[] | undefined) ?? [];
-      const chapter = {
-        key: `import-${preview.package.source.id}`,
-        title: preview.package.title,
-        defaultTrackDisplay: "1",
-        defaultTrackAmbient: "none",
-        display: cover,
-        tracks: preview.tracksToAdd.map((track, index) => ({
-          key: track.sourceId,
-          uid: track.sourceId,
-          title: track.title,
-          trackUrl: (audio[index] as { url?: string }).url,
-          format: track.audio.format,
-          type: "audio",
-          duration: track.audio.duration,
-          fileSize: 0,
-          display: icons[index]
-        }))
-      };
-      const card = {
-        ...(preview.cardId ? { cardId: preview.cardId } : {}),
-        title: preview.existing?.title || preview.package.title,
-        content: {
-          ...(previous?.content ?? {}),
-          chapters: [...existingChapters, chapter]
-        },
-        metadata: {
-          ...(previous?.metadata ?? {}),
-          source: {
-            description: preview.package.source.description,
-            permission: preview.package.source.permission
-          }
-        }
-      };
-      return createYotoSdk({
-        jwt: await tokenManager.getAccessToken(),
-        retries: 0
-      }).content.updateCard(card);
+      const card = buildYotoCard({
+        preview,
+        audio: audio as Parameters<typeof buildYotoCard>[0]["audio"],
+        cover,
+        icons
+      });
+      return postYotoCard(card, await tokenManager.getAccessToken());
     }
   };
 

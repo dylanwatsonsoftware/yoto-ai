@@ -125,7 +125,13 @@ function verifyConfirmation(
 }
 
 export interface YotoWriteApi {
-  uploadAudio(track: PlaylistPackage["tracks"][number], root: string): Promise<unknown>;
+  uploadAudio(
+    track: PlaylistPackage["tracks"][number],
+    root: string,
+    previous: unknown,
+    saveCheckpoint: (result: unknown) => Promise<void>
+  ): Promise<unknown>;
+  isAudioComplete?(result: unknown): boolean;
   uploadCover(cover: PlaylistPackage["cover"], root: string): Promise<unknown>;
   uploadIcon(icon: NonNullable<PlaylistPackage["tracks"][number]["icon"]>, root: string): Promise<unknown>;
   mutateCard(input: {
@@ -154,8 +160,16 @@ export async function applyPreview(
   const icons: Array<unknown | null> = [];
   for (const track of preview.tracksToAdd) {
     let audioResult = await checkpoint?.get(track.audio.sha256);
-    if (audioResult === undefined) {
-      audioResult = await api.uploadAudio(track, root);
+    if (
+      audioResult === undefined ||
+      (api.isAudioComplete && !api.isAudioComplete(audioResult))
+    ) {
+      audioResult = await api.uploadAudio(
+        track,
+        root,
+        audioResult,
+        async (result) => checkpoint?.put(track.audio.sha256, result)
+      );
       await checkpoint?.put(track.audio.sha256, audioResult);
     }
     audio.push(audioResult);

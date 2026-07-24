@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { classifyError, renderHuman, requiresClientId } from "./cli-support.js";
+import {
+  classifyError,
+  parseCliArguments,
+  renderHuman,
+  requiresClientId
+} from "./cli-support.js";
 import { UnsupportedOperationError, UsageError } from "./commands.js";
 
 describe("CLI support", () => {
@@ -26,5 +31,15 @@ describe("CLI support", () => {
     expect(requiresClientId(["playlist", "draft", "--input", "draft.json"])).toBe(false);
     expect(requiresClientId(["devices", "list"])).toBe(true);
     expect(requiresClientId(["auth", "login"])).toBe(true);
+  });
+
+  it("preserves the command when --output is absent", () => {
+    expect(
+      parseCliArguments(["playlist", "inspect-package", "--input", "/tmp/package", "--json"])
+    ).toEqual({
+      args: ["playlist", "inspect-package", "--input", "/tmp/package"],
+      json: true,
+      outputPath: undefined
+    });
   });
 });

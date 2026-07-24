@@ -157,7 +157,14 @@ does not require a Yoto client ID and never publishes the draft.
   replaced under a cross-process lock.
 - Publishing requires a full preview and one explicit confirmation. A changed
   preview requires a new confirmation.
+- Audio uploads are checkpointed by checksum and upload ID. Re-running the
+  same confirmed apply resumes Yoto transcoding instead of uploading the audio
+  again.
+- Publishing waits for completed Yoto transcodes before constructing the card,
+  and uses the returned media references and metadata.
 - The final card mutation is attempted once and is never automatically retried.
+  If it fails, the CLI includes Yoto's validation response so the payload can
+  be corrected before the user explicitly retries.
 
 ## Bundled CLI
 

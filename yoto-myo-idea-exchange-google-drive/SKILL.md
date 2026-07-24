@@ -39,6 +39,23 @@ npm run catalogue -- index rebuild --json
 
 Drive is authoritative; the local index is disposable. A complete rescan tombstones indexed entries no longer returned.
 
+## Nested-folder choices
+
+Whenever a search result or selected item is inside a folder, list that folder's direct children before downloading. Identify every playlist candidate among them:
+
+- `.zip` and `.7z` archives
+- expanded playlist folders
+- subfolders that may contain additional playlist candidates
+
+Tell the user the candidate names, types, and sizes when available. If there is more than one candidate, pause and ask whether to:
+
+1. import only the originally selected item;
+2. combine all candidates;
+3. choose a subset; or
+4. inspect a subfolder.
+
+Do not silently choose the first child or ignore sibling archives/folders. Do not download or package candidates until the user chooses. If the user's request already explicitly names a subset or says to use all items, honor that choice without asking again, but still report every discovered candidate and any excluded non-playlist content.
+
 ## Package discovery
 
 Download the selected folder or archive into temporary storage only after live validation. Support expanded folders, `.zip`, and `.7z`. Validate archive entry paths before extraction and enforce 10,000 files and 2 GiB uncompressed limits.
