@@ -105,12 +105,10 @@ describe("catalogue app", () => {
     document.documentElement.removeAttribute("data-theme");
   });
 
-  it("searches and filters the read-only album grid", async () => {
+  it("searches and filters the read-only playlist catalogue", async () => {
     const user = userEvent.setup();
     render(<App catalogue={catalogue} />);
 
-    expect(screen.getByText("Ada Twist")).toBeInTheDocument();
-    expect(screen.getByText("Bluey Dance")).toBeInTheDocument();
     await user.type(
       screen.getByRole("searchbox", { name: /search catalogue/i }),
       "scientist"
@@ -119,6 +117,7 @@ describe("catalogue app", () => {
     expect(screen.queryByText("Bluey Dance")).not.toBeInTheDocument();
 
     await user.clear(screen.getByRole("searchbox"));
+    await user.type(screen.getByRole("searchbox"), "dance");
     await user.selectOptions(
       screen.getByRole("combobox", { name: /playlist type/i }),
       "archive"
@@ -128,9 +127,38 @@ describe("catalogue app", () => {
     expect(window.location.search).toContain("kind=archive");
   });
 
+  it("browses top-level folders before showing their playlists", async () => {
+    const user = userEvent.setup();
+    render(<App catalogue={catalogue} />);
+
+    expect(screen.getByRole("heading", { name: "2 folders" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open folder Science" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open Ada Twist" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Playlist layout")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Open folder Science" }));
+
+    expect(screen.getByRole("navigation", { name: "Folder location" })).toHaveTextContent(
+      "MYO Idea Exchange / Science"
+    );
+    expect(screen.getByRole("button", { name: "Open Ada Twist" })).toBeInTheDocument();
+  });
+
+  it("replaces folder browsing with the best matching playlists while searching", async () => {
+    const user = userEvent.setup();
+    render(<App catalogue={catalogue} />);
+
+    await user.type(screen.getByRole("searchbox"), "scientist");
+
+    expect(screen.getByRole("heading", { name: "1 search result" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open Ada Twist" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /open folder/i })).not.toBeInTheDocument();
+  });
+
   it("opens an accessible detail view with breadcrumbs and tracks", async () => {
     const user = userEvent.setup();
     render(<App catalogue={catalogue} />);
+    await user.click(screen.getByRole("button", { name: "Open folder Science" }));
     await user.click(screen.getByRole("button", { name: /open ada twist/i }));
 
     const dialog = screen.getByRole("dialog", { name: "Ada Twist" });
@@ -160,14 +188,60 @@ describe("catalogue app", () => {
     expect(
       screen.getByRole("combobox", { name: "Playlist type" })
     ).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "2 playlists" })).toBeInTheDocument();
     expect(screen.queryByText(/\balbums?\b/i)).not.toBeInTheDocument();
+  });
+
+  it("switches to a persistent compact list view", async () => {
+    const user = userEvent.setup();
+    const firstRender = render(<App catalogue={catalogue} />);
+
+    await user.type(screen.getByRole("searchbox"), "Ada");
+    await user.click(screen.getByRole("button", { name: "List view" }));
+    expect(screen.getByRole("button", { name: "List view" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+    expect(screen.getByRole("region", { name: "Playlist results" })).toHaveClass(
+      "album-grid--list"
+    );
+    expect(screen.getByRole("img", { name: "Ada Twist cover" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("No cover available")).not.toBeInTheDocument();
+    expect(window.localStorage.getItem("yoto-catalogue-layout")).toBe("list");
+
+    firstRender.unmount();
+    render(<App catalogue={catalogue} />);
+    expect(screen.getByRole("button", { name: "List view" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+  });
+
+  it("shows folder subtitles for playlists and nested playlists", async () => {
+    const user = userEvent.setup();
+    const nestedCatalogue: Catalogue = {
+      ...catalogue,
+      albums: catalogue.albums.map((album) =>
+        album.id === "ada"
+          ? { ...album, nestedAlbumIds: ["bluey"] }
+          : album
+      )
+    };
+    render(<App catalogue={nestedCatalogue} />);
+
+    await user.type(screen.getByRole("searchbox"), "Ada");
+    expect(screen.getByText("Folder: Science")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /open ada twist/i }));
+    const dialog = screen.getByRole("dialog", { name: "Ada Twist" });
+    const nestedItem = within(dialog).getByText("Bluey Dance").closest("li");
+    expect(nestedItem).not.toBeNull();
+    expect(within(nestedItem!).getByText("Folder: Stories")).toBeInTheDocument();
   });
 
   it("favourites albums, persists them, and shows them in a dedicated view", async () => {
     const user = userEvent.setup();
     const firstRender = render(<App catalogue={catalogue} />);
 
+    await user.click(screen.getByRole("button", { name: "Open folder Science" }));
     await user.click(
       screen.getByRole("button", { name: /add ada twist to favourites/i })
     );
@@ -202,6 +276,7 @@ describe("catalogue app", () => {
     };
     render(<App catalogue={nestedCatalogue} />);
 
+    await user.click(screen.getByRole("button", { name: "Open folder Science" }));
     await user.click(screen.getByRole("button", { name: /open ada twist/i }));
     const dialog = screen.getByRole("dialog", { name: "Ada Twist" });
     await user.click(

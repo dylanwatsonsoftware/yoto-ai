@@ -133,12 +133,28 @@ function normalize(value: string): string {
     .trim();
 }
 
-function matchesQuery(album: Album, query: string): boolean {
-  const terms = normalize(query).split(/\s+/).filter(Boolean);
-  if (!terms.length) return true;
-  const haystack = normalize(
-    [album.title, album.path, ...album.pathSegments.map((part) => part.name), ...album.tracks.map((track) => track.title)].join(" ")
+export type CatalogueSearchIndex = ReadonlyMap<string, string>;
+
+export function buildCatalogueSearchIndex(
+  catalogue: Catalogue
+): CatalogueSearchIndex {
+  return new Map(
+    catalogue.albums.map((album) => [
+      album.id,
+      normalize(
+        [
+          album.title,
+          album.path,
+          ...album.pathSegments.map((part) => part.name),
+          ...album.tracks.map((track) => track.title)
+        ].join(" ")
+      )
+    ])
   );
+}
+
+function matchesQuery(haystack: string, terms: string[]): boolean {
+  if (!terms.length) return true;
   return terms.every((term) => haystack.includes(term));
 }
 
@@ -150,12 +166,15 @@ function matchesDepth(depth: number, filter: DepthFilter): boolean {
 
 export function filterAlbums(
   catalogue: Catalogue,
-  filters: CatalogueFilters
+  filters: CatalogueFilters,
+  searchIndex: CatalogueSearchIndex = buildCatalogueSearchIndex(catalogue)
 ): Album[] {
+  const normalizedQuery = normalize(filters.query);
+  const terms = normalizedQuery.split(/\s+/).filter(Boolean);
   return catalogue.albums
     .filter(
       (album) =>
-        matchesQuery(album, filters.query) &&
+        matchesQuery(searchIndex.get(album.id) ?? "", terms) &&
         (filters.kind === "all" || album.kind === filters.kind) &&
         (filters.collection === "all" ||
           album.parentCollectionId === filters.collection ||
@@ -165,6 +184,18 @@ export function filterAlbums(
         matchesDepth(album.depth, filters.depth)
     )
     .sort((left, right) => {
+      if (terms.length && filters.sort === "title") {
+        const relevance = (album: Album) => {
+          const title = normalize(album.title);
+          if (title === normalizedQuery) return 0;
+          if (title.startsWith(normalizedQuery)) return 1;
+          if (title.includes(normalizedQuery)) return 2;
+          if (terms.every((term) => title.includes(term))) return 3;
+          return 4;
+        };
+        const relevanceDifference = relevance(left) - relevance(right);
+        if (relevanceDifference) return relevanceDifference;
+      }
       if (filters.sort === "modified") {
         return (
           Date.parse(right.modifiedTime) - Date.parse(left.modifiedTime) ||

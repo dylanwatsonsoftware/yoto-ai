@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildCatalogueSearchIndex,
   filterAlbums,
   readCatalogueQuery,
   validateCatalogue,
@@ -122,6 +123,27 @@ const catalogue: Catalogue = {
 };
 
 describe("catalogue discovery", () => {
+  it("builds a reusable search index for playlist metadata and tracks", () => {
+    const index = buildCatalogueSearchIndex(catalogue);
+
+    expect(index.get("ada")).toContain("scientist song");
+    expect(index.get("deep")).toContain("stories nested");
+    expect(
+      filterAlbums(
+        catalogue,
+        {
+          query: "scientist",
+          kind: "all",
+          collection: "all",
+          cover: "all",
+          depth: "all",
+          sort: "title"
+        },
+        index
+      ).map((album) => album.id)
+    ).toEqual(["ada"]);
+  });
+
   it("searches titles, paths, collections, and expanded track names", () => {
     expect(
       filterAlbums(catalogue, {
@@ -143,6 +165,29 @@ describe("catalogue discovery", () => {
         sort: "title"
       }).map((album) => album.id)
     ).toEqual(["bluey", "deep"]);
+  });
+
+  it("ranks title matches ahead of matches found only in tracks or folders", () => {
+    const titleMatch = {
+      ...catalogue.albums[1],
+      id: "scientist",
+      title: "Scientist Stories",
+      path: "MYO/Stories/Scientist Stories.zip"
+    };
+
+    expect(
+      filterAlbums(
+        { ...catalogue, albums: [...catalogue.albums, titleMatch] },
+        {
+          query: "scientist",
+          kind: "all",
+          collection: "all",
+          cover: "all",
+          depth: "all",
+          sort: "title"
+        }
+      ).map((album) => album.id)
+    ).toEqual(["scientist", "ada"]);
   });
 
   it("filters nesting depth and sorts modified dates", () => {

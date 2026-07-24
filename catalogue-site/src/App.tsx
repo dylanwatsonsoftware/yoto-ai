@@ -1,18 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  buildCatalogueSearchIndex,
   defaultFilters,
   filterAlbums,
   readCatalogueQuery,
   writeCatalogueQuery,
   type Album,
   type Catalogue,
-  type CatalogueQuery
+  type CatalogueQuery,
+  type Collection
 } from "./catalogue";
 import "./styles.css";
 
 const FAVOURITES_KEY = "yoto-catalogue-favourites";
 const THEME_KEY = "yoto-catalogue-theme";
+const LAYOUT_KEY = "yoto-catalogue-layout";
 type Theme = "light" | "dark";
+type Layout = "gallery" | "list";
 
 function readFavourites(): string[] {
   try {
@@ -51,6 +55,15 @@ function formatDate(value: string): string {
 function albumType(album: Album): string {
   if (album.kind === "expanded") return "Expanded playlist";
   return `${album.archiveFormat?.toUpperCase() ?? "Archive"} playlist`;
+}
+
+function playlistFolder(album: Album, catalogue: Catalogue): string {
+  return (
+    album.pathSegments
+      .slice(1, -1)
+      .map((part) => part.name)
+      .join(" / ") || catalogue.root.title
+  );
 }
 
 function AlbumArtwork({ album, large = false }: { album: Album; large?: boolean }) {
@@ -179,7 +192,10 @@ function DetailDialog({
               <ul className="nested-list">
                 {nested.map((candidate) => (
                   <li key={candidate.id}>
-                    <span>{candidate.title}</span>
+                    <div className="nested-list__identity">
+                      <span>{candidate.title}</span>
+                      <small>Folder: {playlistFolder(candidate, catalogue)}</small>
+                    </div>
                     <FavouriteButton
                       album={candidate}
                       active={favourites.has(candidate.id)}
@@ -230,13 +246,50 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
   const [theme, setTheme] = useState<Theme>(() =>
     window.localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark"
   );
+  const [layout, setLayout] = useState<Layout>(() =>
+    window.localStorage.getItem(LAYOUT_KEY) === "list" ? "list" : "gallery"
+  );
   const favouriteIds = useMemo(() => new Set(favourites), [favourites]);
+  const searchIndex = useMemo(
+    () => buildCatalogueSearchIndex(catalogue),
+    [catalogue]
+  );
   const albums = useMemo(() => {
-    const filtered = filterAlbums(catalogue, state);
+    const filtered = filterAlbums(catalogue, state, searchIndex);
     return showFavourites
       ? filtered.filter((album) => favouriteIds.has(album.id))
       : filtered;
-  }, [catalogue, favouriteIds, showFavourites, state]);
+  }, [catalogue, favouriteIds, searchIndex, showFavourites, state]);
+  const browseMode = !state.query.trim() && !showFavourites;
+  const currentFolder =
+    state.collection === "all"
+      ? undefined
+      : catalogue.collections.find(
+          (collection) => collection.id === state.collection
+        );
+  const currentFolderId = currentFolder?.id ?? catalogue.root.id;
+  const childFolders = browseMode
+    ? catalogue.collections
+        .filter((collection) => collection.parentId === currentFolderId)
+        .sort((left, right) =>
+          left.title.localeCompare(right.title, undefined, {
+            numeric: true,
+            sensitivity: "base"
+          })
+        )
+    : [];
+  const visibleAlbums = browseMode
+    ? albums.filter((album) => album.parentId === currentFolderId)
+    : albums;
+  const folderTrail: Array<Pick<Collection, "id" | "title">> = [
+    { id: catalogue.root.id, title: catalogue.root.title },
+    ...(currentFolder
+      ? currentFolder.pathSegments.slice(1).map((segment) => ({
+          id: segment.id,
+          title: segment.name
+        }))
+      : [])
+  ];
   const selected = state.selected
     ? catalogue.albums.find((album) => album.id === state.selected)
     : undefined;
@@ -258,6 +311,10 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
     document.documentElement.dataset.theme = theme;
     window.localStorage.setItem(THEME_KEY, theme);
   }, [theme]);
+
+  useEffect(() => {
+    window.localStorage.setItem(LAYOUT_KEY, layout);
+  }, [layout]);
 
   const toggleFavourite = (album: Album) => {
     setFavourites((current) =>
@@ -332,7 +389,15 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
             <input
               type="search"
               value={state.query}
-              onChange={(event) => update("query", event.target.value)}
+              onChange={(event) => {
+                const query = event.target.value;
+                setState((current) => ({
+                  ...current,
+                  query,
+                  collection: query.trim() ? "all" : current.collection,
+                  selected: undefined
+                }));
+              }}
               placeholder="Title, folder, collection or track…"
             />
           </label>
@@ -384,26 +449,104 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
           </div>
         </section>
 
+        {browseMode && (
+          <nav className="folder-breadcrumbs" aria-label="Folder location">
+            {folderTrail.map((folder, index) => (
+              <span key={folder.id}>
+                {index > 0 && <b aria-hidden="true"> / </b>}
+                <button
+                  type="button"
+                  onClick={() => update(
+                    "collection",
+                    folder.id === catalogue.root.id ? "all" : folder.id
+                  )}
+                >
+                  {folder.title}
+                </button>
+              </span>
+            ))}
+          </nav>
+        )}
+
         <div className="results-heading">
           <h2>
             {showFavourites
-              ? `${albums.length} ${albums.length === 1 ? "favourite" : "favourites"}`
-              : albums.length === 1 ? "1 playlist" : `${albums.length} playlists`}
+              ? `${visibleAlbums.length} ${visibleAlbums.length === 1 ? "favourite" : "favourites"}`
+              : state.query.trim()
+                ? `${visibleAlbums.length} search ${visibleAlbums.length === 1 ? "result" : "results"}`
+                : childFolders.length && !visibleAlbums.length
+                  ? `${childFolders.length} ${childFolders.length === 1 ? "folder" : "folders"}`
+                  : childFolders.length
+                    ? `${childFolders.length + visibleAlbums.length} items`
+                    : visibleAlbums.length === 1
+                      ? "1 playlist"
+                      : `${visibleAlbums.length} playlists`}
           </h2>
-          {(state.query || Object.entries(state).some(([key, value]) => key !== "sort" && key !== "selected" && value !== "all" && value !== "")) && (
-            <button
-              type="button"
-              className="text-button"
-              onClick={() => setState({ ...defaultFilters })}
-            >
-              Clear filters
-            </button>
-          )}
+          <div className="results-actions">
+            {visibleAlbums.length > 0 && (
+              <div className="layout-switcher" aria-label="Playlist layout">
+                <button
+                  type="button"
+                  aria-label="Gallery view"
+                  aria-pressed={layout === "gallery"}
+                  className={layout === "gallery" ? "layout-switcher__active" : ""}
+                  onClick={() => setLayout("gallery")}
+                >
+                  <span aria-hidden="true">▦</span> Gallery
+                </button>
+                <button
+                  type="button"
+                  aria-label="List view"
+                  aria-pressed={layout === "list"}
+                  className={layout === "list" ? "layout-switcher__active" : ""}
+                  onClick={() => setLayout("list")}
+                >
+                  <span aria-hidden="true">☷</span> List
+                </button>
+              </div>
+            )}
+            {(state.query || Object.entries(state).some(([key, value]) => key !== "sort" && key !== "selected" && value !== "all" && value !== "")) && (
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => setState({ ...defaultFilters })}
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
         </div>
 
-        {albums.length ? (
-          <section className="album-grid" aria-label="Playlist results">
-            {albums.map((album) => (
+        {childFolders.length > 0 && (
+          <section className="folder-grid" aria-label="Folders">
+            {childFolders.map((folder) => (
+              <button
+                type="button"
+                className="folder-card"
+                key={folder.id}
+                aria-label={`Open folder ${folder.title}`}
+                onClick={() => update("collection", folder.id)}
+              >
+                <span className="folder-card__icon" aria-hidden="true">◆</span>
+                <span>
+                  <strong>{folder.title}</strong>
+                  <small>
+                    {folder.nestedAlbumIds.length}{" "}
+                    {folder.nestedAlbumIds.length === 1 ? "playlist" : "playlists"}
+                  </small>
+                </span>
+                <span className="folder-card__arrow" aria-hidden="true">›</span>
+              </button>
+            ))}
+          </section>
+        )}
+
+        {visibleAlbums.length ? (
+          <section
+            className={`album-grid ${layout === "list" ? "album-grid--list" : ""}`}
+            aria-label="Playlist results"
+          >
+            {visibleAlbums.map((album) => (
               <article className="album-card" key={album.id}>
                 <FavouriteButton
                   album={album}
@@ -412,15 +555,25 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
                 />
                 <button
                   type="button"
-                  className="album-card__button"
+                  className={`album-card__button ${
+                    layout === "list" && album.cover
+                      ? "album-card__button--has-artwork"
+                      : ""
+                  }`}
                   aria-label={`Open ${album.title}`}
                   onClick={() => setState((current) => ({ ...current, selected: album.id }))}
                 >
-                  <AlbumArtwork album={album} />
+                  {(layout === "gallery" || album.cover) && (
+                    <AlbumArtwork album={album} />
+                  )}
                   <div className="album-card__content">
-                    <span className="album-card__type">{albumType(album)}</span>
-                    <h3>{album.title}</h3>
-                    <p>{album.pathSegments.slice(1, -1).map((part) => part.name).join(" / ") || catalogue.root.title}</p>
+                    <div className="album-card__identity">
+                      <span className="album-card__type">{albumType(album)}</span>
+                      <h3>{album.title}</h3>
+                    </div>
+                    <p className="folder-subtitle">
+                      Folder: {playlistFolder(album, catalogue)}
+                    </p>
                     <div className="album-card__meta">
                       <span>{album.kind === "expanded" ? `${album.tracks.length} tracks` : "Contents uninspected"}</span>
                       <span>{formatDate(album.modifiedTime)}</span>
@@ -430,7 +583,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
               </article>
             ))}
           </section>
-        ) : (
+        ) : !childFolders.length ? (
           <section className="empty-state">
             <span aria-hidden="true">{showFavourites ? "♡" : "0"}</span>
             <h2>
@@ -444,7 +597,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
                 : "Try a broader search or clear the selected filters."}
             </p>
           </section>
-        )}
+        ) : null}
       </main>
       <footer>
         <span>Read-only Drive snapshot</span>
