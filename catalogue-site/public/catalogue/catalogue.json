@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-24T08:49:04.494Z",
+  "generatedAt": "2026-07-24T09:15:14.307Z",
   "root": {
     "id": "12ueGfirgSd21B7ShXZiATmrZCl3J4OqI",
     "title": "MYO Collection"
@@ -11,7 +11,7 @@
   "stats": {
     "albums": 3489,
     "collections": 427,
-    "covers": 65
+    "covers": 71
   },
   "collections": [
     {
@@ -113293,7 +113293,14 @@
       "size": null,
       "modifiedTime": "2025-12-14T21:38:28.888Z",
       "checksum": null,
-      "cover": null,
+      "cover": {
+        "sourceId": "1ADw32dXlK_8YIjFCGIDtDkEOakfXMBCX",
+        "sourceName": "5 Minute Ada Twist.jpg",
+        "checksum": null,
+        "path": "covers/139tHxlgRyt5BajJGuohuU2vb0AhfV1UQ.webp",
+        "width": 320,
+        "height": 320
+      },
       "tracks": [
         {
           "id": "1kUxO4a1OwyL8jO0oxXza-fJK8FCtAkfA",
@@ -113403,7 +113410,14 @@
       "size": null,
       "modifiedTime": "2025-12-14T21:38:57.206Z",
       "checksum": null,
-      "cover": null,
+      "cover": {
+        "sourceId": "1BCIn2ldgxHaxwmmoni0kp0fIIAw5NpqV",
+        "sourceName": "5 Minute Batman Stories.jpeg",
+        "checksum": null,
+        "path": "covers/12FWh81T7kD18UxZFE2SgYy2jdnowFpO4.webp",
+        "width": 320,
+        "height": 320
+      },
       "tracks": [
         {
           "id": "1zV0T5QjTLKQDjnHXIyGpT0giygjLFVH0",
@@ -113508,7 +113522,14 @@
       "size": null,
       "modifiedTime": "2025-12-14T21:46:53.074Z",
       "checksum": null,
-      "cover": null,
+      "cover": {
+        "sourceId": "1pYWJiqLct1kZYUpELbIqQUU6fYC9BHSq",
+        "sourceName": "5 Minute Horse Stories.png",
+        "checksum": null,
+        "path": "covers/1c-3gbEWzxPN-A7T4T5rc-7TVc89u41Rj.webp",
+        "width": 320,
+        "height": 320
+      },
       "tracks": [
         {
           "id": "1gmEAtuK6ErUco1-Uqsq7jYjGrArTvxkU",
@@ -113571,7 +113592,14 @@
       "size": null,
       "modifiedTime": "2025-12-14T21:46:53.073Z",
       "checksum": null,
-      "cover": null,
+      "cover": {
+        "sourceId": "18coaQC6nUWXvGbHUJpsv4GKBNVnTA-SP",
+        "sourceName": "5 Minute Lego Ninja.JPG",
+        "checksum": null,
+        "path": "covers/10GJu1ZvmnHLa_aZ0X0m6gT5T2QsOlaq8.webp",
+        "width": 320,
+        "height": 320
+      },
       "tracks": [
         {
           "id": "1YU3JT93etLilgAgxOvZS3sYF6TRyJ9nO",
@@ -113783,7 +113811,14 @@
       "size": null,
       "modifiedTime": "2025-12-02T23:24:21.377Z",
       "checksum": null,
-      "cover": null,
+      "cover": {
+        "sourceId": "1dQ4NKL_GKs5JI9xhRetRfjKP08ui8zHf",
+        "sourceName": "1695351406236ts_DanielTiger9SMG2023_AcademyCaKeyArt_DTN_v01.jpg",
+        "checksum": null,
+        "path": "covers/1l82PGZSqwrhwlUtVQ9AnxEUndN8d3k6g.webp",
+        "width": 320,
+        "height": 320
+      },
       "tracks": [
         {
           "id": "1CHgnQ5Cw4GB-LUce3bGNGzblOT_DuLTm",
@@ -114339,7 +114374,14 @@
       "size": null,
       "modifiedTime": "2025-12-03T21:33:26.408Z",
       "checksum": null,
-      "cover": null,
+      "cover": {
+        "sourceId": "1-RvTWSUzDCrZZE8O9yG_jskQXpa2jRfM",
+        "sourceName": "IMG_1860.JPG",
+        "checksum": null,
+        "path": "covers/13GXATf127Ewjb3cbyHLTRUbn-V1R32jU.webp",
+        "width": 320,
+        "height": 320
+      },
       "tracks": [
         {
           "id": "1Swbhik4AxN_kPurHIeF5vkflX7qaFRhO",
