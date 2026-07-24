@@ -121,6 +121,9 @@ function DetailDialog({
         role="dialog"
         aria-modal="true"
         aria-label={album.title}
+        style={{
+          maxHeight: "min(calc(100vh - 48px), calc(100dvh - 12px))"
+        }}
         onMouseDown={(event) => event.stopPropagation()}
       >
         <button className="detail__close" type="button" onClick={onClose} aria-label="Close details">

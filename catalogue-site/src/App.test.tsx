@@ -241,6 +241,7 @@ describe("catalogue app", () => {
     await user.click(screen.getByRole("button", { name: /open ada twist/i }));
 
     const dialog = screen.getByRole("dialog", { name: "Ada Twist" });
+    expect(dialog.style.maxHeight).toContain("100dvh");
     expect(within(dialog).getByText("Science")).toBeInTheDocument();
     expect(within(dialog).getByText("Ada Twist, Scientist")).toBeInTheDocument();
     expect(
