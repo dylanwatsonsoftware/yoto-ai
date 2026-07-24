@@ -424,6 +424,9 @@ describe("catalogue app", () => {
       expect.stringContaining("$yoto-ai")
     );
     expect(writeText).toHaveBeenCalledWith(
+      expect.stringContaining("https://github.com/dylanwatsonsoftware/yoto-ai")
+    );
+    expect(writeText).toHaveBeenCalledWith(
       expect.stringContaining("Ada Twist — MYO/Science/Ada Twist")
     );
     expect(screen.getByRole("status")).toHaveTextContent("Prompt copied");

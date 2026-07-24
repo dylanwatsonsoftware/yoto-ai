@@ -77,7 +77,7 @@ function buildYotoCreationPrompt(albums: Album[]): string {
     )
     .join("\n");
 
-  return `Use $yoto-myo-idea-exchange-google-drive to locate each selected item below in the Yoto MYO Idea Exchange Google Drive and prepare a separate portable Yoto playlist package for each one. Keep Drive read-only. Treat this as an explicit selection of these exact items; report any sibling playlist candidates required by the skill, but do not substitute or add unlisted items.
+  return `Use $yoto-myo-idea-exchange-google-drive to locate each selected item below in the Yoto MYO Idea Exchange Google Drive and prepare a separate portable Yoto playlist package for each one. If either named skill is unavailable, load it from https://github.com/dylanwatsonsoftware/yoto-ai, which contains the yoto-myo-idea-exchange-google-drive and yoto-ai skill directories, and follow their SKILL.md instructions before proceeding. Keep Drive read-only. Treat this as an explicit selection of these exact items; report any sibling playlist candidates required by the skill, but do not substitute or add unlisted items.
 
 Then use $yoto-ai to authenticate with Yoto, validate every package, inspect the live library for exact or similar duplicate titles, and prepare one consolidated preview that creates one Yoto playlist per selected item. Show me the complete operation and ask exactly once for explicit confirmation. Only after I confirm, publish the whole operation and wait for every upload and transcode to complete.
 
