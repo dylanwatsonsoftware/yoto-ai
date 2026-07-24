@@ -10,6 +10,19 @@ import {
 } from "./catalogue";
 import "./styles.css";
 
+const FAVOURITES_KEY = "yoto-catalogue-favourites";
+
+function readFavourites(): string[] {
+  try {
+    const value = JSON.parse(window.localStorage.getItem(FAVOURITES_KEY) ?? "[]");
+    return Array.isArray(value)
+      ? value.filter((id): id is string => typeof id === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
+
 function formatBytes(value: number | null): string {
   if (value === null) return "Size unavailable";
   const units = ["B", "KB", "MB", "GB"];
@@ -61,10 +74,14 @@ function AlbumArtwork({ album, large = false }: { album: Album; large?: boolean 
 function DetailDialog({
   album,
   catalogue,
+  favourites,
+  onToggleFavourite,
   onClose
 }: {
   album: Album;
   catalogue: Catalogue;
+  favourites: Set<string>;
+  onToggleFavourite(album: Album): void;
   onClose(): void;
 }) {
   const nested = album.nestedAlbumIds
@@ -117,6 +134,12 @@ function DetailDialog({
             >
               Open in Google Drive
             </a>
+            <FavouriteButton
+              album={album}
+              active={favourites.has(album.id)}
+              onToggle={onToggleFavourite}
+              className="detail__favourite"
+            />
           </div>
         </div>
         <div className="detail__body">
@@ -153,7 +176,14 @@ function DetailDialog({
               <h3>Nested albums <span className="count">{nested.length}</span></h3>
               <ul className="nested-list">
                 {nested.map((candidate) => (
-                  <li key={candidate.id}>{candidate.title}</li>
+                  <li key={candidate.id}>
+                    <span>{candidate.title}</span>
+                    <FavouriteButton
+                      album={candidate}
+                      active={favourites.has(candidate.id)}
+                      onToggle={onToggleFavourite}
+                    />
+                  </li>
                 ))}
               </ul>
             </section>
@@ -164,12 +194,44 @@ function DetailDialog({
   );
 }
 
+function FavouriteButton({
+  album,
+  active,
+  onToggle,
+  className = ""
+}: {
+  album: Album;
+  active: boolean;
+  onToggle(album: Album): void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      className={`favourite-button ${active ? "favourite-button--active" : ""} ${className}`}
+      aria-label={`${active ? "Remove" : "Add"} ${album.title} ${active ? "from" : "to"} favourites`}
+      aria-pressed={active}
+      onClick={() => onToggle(album)}
+    >
+      <span aria-hidden="true">{active ? "♥" : "♡"}</span>
+    </button>
+  );
+}
+
 export default function App({ catalogue }: { catalogue: Catalogue }) {
   const [state, setState] = useState<CatalogueQuery>(() => ({
     ...defaultFilters,
     ...readCatalogueQuery(window.location.search)
   }));
-  const albums = useMemo(() => filterAlbums(catalogue, state), [catalogue, state]);
+  const [favourites, setFavourites] = useState<string[]>(readFavourites);
+  const [showFavourites, setShowFavourites] = useState(false);
+  const favouriteIds = useMemo(() => new Set(favourites), [favourites]);
+  const albums = useMemo(() => {
+    const filtered = filterAlbums(catalogue, state);
+    return showFavourites
+      ? filtered.filter((album) => favouriteIds.has(album.id))
+      : filtered;
+  }, [catalogue, favouriteIds, showFavourites, state]);
   const selected = state.selected
     ? catalogue.albums.find((album) => album.id === state.selected)
     : undefined;
@@ -182,6 +244,18 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
       `${window.location.pathname}${query ? `?${query}` : ""}`
     );
   }, [state]);
+
+  useEffect(() => {
+    window.localStorage.setItem(FAVOURITES_KEY, JSON.stringify(favourites));
+  }, [favourites]);
+
+  const toggleFavourite = (album: Album) => {
+    setFavourites((current) =>
+      current.includes(album.id)
+        ? current.filter((id) => id !== album.id)
+        : [...current, album.id]
+    );
+  };
 
   const update = <K extends keyof CatalogueQuery>(
     key: K,
@@ -214,6 +288,25 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
           </p>
         )}
         <section className="discovery" aria-label="Catalogue filters">
+          <div className="view-switcher" aria-label="Catalogue view">
+            <button
+              type="button"
+              className={!showFavourites ? "view-switcher__active" : ""}
+              aria-pressed={!showFavourites}
+              onClick={() => setShowFavourites(false)}
+            >
+              All albums
+            </button>
+            <button
+              type="button"
+              className={showFavourites ? "view-switcher__active" : ""}
+              aria-pressed={showFavourites}
+              onClick={() => setShowFavourites(true)}
+            >
+              <span aria-hidden="true">♥</span>{" "}
+              View {favourites.length} {favourites.length === 1 ? "favourite" : "favourites"}
+            </button>
+          </div>
           <label className="search">
             <span>Search catalogue</span>
             <input
@@ -272,7 +365,11 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
         </section>
 
         <div className="results-heading">
-          <h2>{albums.length === 1 ? "1 album" : `${albums.length} albums`}</h2>
+          <h2>
+            {showFavourites
+              ? `${albums.length} ${albums.length === 1 ? "favourite" : "favourites"}`
+              : albums.length === 1 ? "1 album" : `${albums.length} albums`}
+          </h2>
           {(state.query || Object.entries(state).some(([key, value]) => key !== "sort" && key !== "selected" && value !== "all" && value !== "")) && (
             <button
               type="button"
@@ -288,6 +385,11 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
           <section className="album-grid" aria-label="Album results">
             {albums.map((album) => (
               <article className="album-card" key={album.id}>
+                <FavouriteButton
+                  album={album}
+                  active={favouriteIds.has(album.id)}
+                  onToggle={toggleFavourite}
+                />
                 <button
                   type="button"
                   className="album-card__button"
@@ -310,9 +412,17 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
           </section>
         ) : (
           <section className="empty-state">
-            <span aria-hidden="true">0</span>
-            <h2>No albums match those filters.</h2>
-            <p>Try a broader search or clear the selected filters.</p>
+            <span aria-hidden="true">{showFavourites ? "♡" : "0"}</span>
+            <h2>
+              {showFavourites
+                ? "No favourites match these filters."
+                : "No albums match those filters."}
+            </h2>
+            <p>
+              {showFavourites
+                ? "Favourite an album, or broaden the selected filters."
+                : "Try a broader search or clear the selected filters."}
+            </p>
           </section>
         )}
       </main>
@@ -324,6 +434,8 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
         <DetailDialog
           album={selected}
           catalogue={catalogue}
+          favourites={favouriteIds}
+          onToggleFavourite={toggleFavourite}
           onClose={() =>
             setState((current) => ({ ...current, selected: undefined }))
           }

@@ -167,6 +167,31 @@ main {
   backdrop-filter: blur(14px);
 }
 
+.view-switcher {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.view-switcher button {
+  padding: 9px 13px;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.view-switcher button:last-child {
+  margin-left: auto;
+}
+
+.view-switcher .view-switcher__active {
+  color: #fff;
+  background: var(--purple);
+  border-color: var(--purple);
+}
+
 .search span,
 .filters label span {
   display: block;
@@ -233,7 +258,40 @@ main {
 }
 
 .album-card {
+  position: relative;
   min-width: 0;
+}
+
+.favourite-button {
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  color: var(--purple);
+  background: rgba(255, 253, 248, 0.94);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.favourite-button span {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.favourite-button--active {
+  color: #fff;
+  background: var(--coral);
+  border-color: var(--coral);
+}
+
+.album-card > .favourite-button {
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  right: 12px;
+  box-shadow: 0 5px 18px rgba(39, 34, 58, 0.16);
 }
 
 .album-card__button {
@@ -457,6 +515,11 @@ main {
   background: var(--purple-dark);
 }
 
+.detail__favourite {
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
 .detail__body {
   display: grid;
   gap: 24px;
@@ -517,9 +580,23 @@ main {
 }
 
 .nested-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 8px 11px;
   background: #eee6f8;
   border-radius: 8px;
+}
+
+.nested-list .favourite-button {
+  width: 30px;
+  height: 30px;
+  background: #fff;
+}
+
+.nested-list .favourite-button--active {
+  color: #fff;
+  background: var(--coral);
 }
 
 footer {
@@ -593,6 +670,14 @@ footer {
   .discovery {
     position: static;
     padding: 15px;
+  }
+
+  .view-switcher {
+    flex-wrap: wrap;
+  }
+
+  .view-switcher button:last-child {
+    margin-left: 0;
   }
 
   .filters {

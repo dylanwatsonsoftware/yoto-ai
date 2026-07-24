@@ -101,6 +101,7 @@ const catalogue: Catalogue = {
 describe("catalogue app", () => {
   beforeEach(() => {
     window.history.replaceState(null, "", "/");
+    window.localStorage.clear();
   });
 
   it("searches and filters the read-only album grid", async () => {
@@ -148,5 +149,56 @@ describe("catalogue app", () => {
     render(<App catalogue={catalogue} />);
     await user.type(screen.getByRole("searchbox"), "not in catalogue");
     expect(screen.getByText(/no albums match/i)).toBeInTheDocument();
+  });
+
+  it("favourites albums, persists them, and shows them in a dedicated view", async () => {
+    const user = userEvent.setup();
+    const firstRender = render(<App catalogue={catalogue} />);
+
+    await user.click(
+      screen.getByRole("button", { name: /add ada twist to favourites/i })
+    );
+    expect(
+      screen.getByRole("button", { name: /remove ada twist from favourites/i })
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(window.localStorage.getItem("yoto-catalogue-favourites")).toBe(
+      '["ada"]'
+    );
+
+    await user.click(screen.getByRole("button", { name: /view 1 favourite/i }));
+    expect(screen.getByText("Ada Twist")).toBeInTheDocument();
+    expect(screen.queryByText("Bluey Dance")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "1 favourite" })).toBeInTheDocument();
+
+    firstRender.unmount();
+    render(<App catalogue={catalogue} />);
+    expect(
+      screen.getByRole("button", { name: /view 1 favourite/i })
+    ).toBeInTheDocument();
+  });
+
+  it("can favourite a nested album from its parent detail view", async () => {
+    const user = userEvent.setup();
+    const nestedCatalogue: Catalogue = {
+      ...catalogue,
+      albums: catalogue.albums.map((album) =>
+        album.id === "ada"
+          ? { ...album, nestedAlbumIds: ["bluey"] }
+          : album
+      )
+    };
+    render(<App catalogue={nestedCatalogue} />);
+
+    await user.click(screen.getByRole("button", { name: /open ada twist/i }));
+    const dialog = screen.getByRole("dialog", { name: "Ada Twist" });
+    await user.click(
+      within(dialog).getByRole("button", {
+        name: /add bluey dance to favourites/i
+      })
+    );
+
+    expect(window.localStorage.getItem("yoto-catalogue-favourites")).toBe(
+      '["bluey"]'
+    );
   });
 });
