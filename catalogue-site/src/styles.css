@@ -77,8 +77,8 @@ select:focus-visible {
   align-items: end;
   justify-content: space-between;
   gap: 36px;
-  min-height: 310px;
-  padding: clamp(32px, 6vw, 80px);
+  min-height: 200px;
+  padding: clamp(28px, 4vw, 48px);
   color: #fffdf9;
   background:
     radial-gradient(circle at 86% 17%, rgba(255, 210, 151, 0.34) 0 6%, transparent 6.5%),
@@ -102,8 +102,8 @@ select:focus-visible {
 .theme-toggle {
   position: absolute;
   z-index: 3;
-  top: 22px;
-  right: 22px;
+  top: 16px;
+  right: 16px;
   display: flex;
   align-items: center;
   gap: 7px;
@@ -130,18 +130,18 @@ select:focus-visible {
 }
 
 .hero h1 {
-  max-width: 720px;
+  max-width: 620px;
   margin: 0;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(3.4rem, 8vw, 7.2rem);
+  font-size: clamp(2.7rem, 5vw, 4.7rem);
   font-weight: 500;
-  line-height: 0.84;
+  line-height: 0.9;
   letter-spacing: -0.045em;
 }
 
 .hero p {
   max-width: 540px;
-  margin: 24px 0 0;
+  margin: 14px 0 0;
   color: rgba(255, 255, 255, 0.78);
   font-size: 1.05rem;
   line-height: 1.6;
@@ -152,7 +152,7 @@ select:focus-visible {
   z-index: 1;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  min-width: min(440px, 100%);
+  min-width: min(390px, 100%);
   margin: 0;
   padding: 18px 0;
   background: rgba(255, 253, 248, 0.11);
@@ -185,7 +185,7 @@ select:focus-visible {
 }
 
 main {
-  padding: 42px 0 0;
+  padding: 28px 0 0;
 }
 
 .notice {
@@ -198,9 +198,6 @@ main {
 }
 
 .discovery {
-  position: sticky;
-  z-index: 5;
-  top: 14px;
   padding: 20px;
   background: color-mix(in srgb, var(--paper) 90%, transparent);
   border: 1px solid rgba(221, 213, 200, 0.9);
@@ -665,7 +662,7 @@ footer {
   }
 
   .hero__stats {
-    margin-top: 42px;
+    margin-top: 28px;
   }
 
   .filters {
@@ -680,17 +677,17 @@ footer {
 
   .hero {
     min-height: 0;
-    padding: 34px 24px 24px;
+    padding: 52px 24px 22px;
     border-radius: 20px;
   }
 
   .hero h1 {
-    font-size: clamp(3.2rem, 18vw, 5rem);
+    font-size: clamp(2.7rem, 14vw, 4rem);
   }
 
   .hero__stats {
     min-width: 0;
-    margin-top: 32px;
+    margin-top: 22px;
   }
 
   .hero__stats div {

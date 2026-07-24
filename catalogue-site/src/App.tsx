@@ -49,8 +49,8 @@ function formatDate(value: string): string {
 }
 
 function albumType(album: Album): string {
-  if (album.kind === "expanded") return "Expanded folder";
-  return `${album.archiveFormat?.toUpperCase() ?? "Archive"} album`;
+  if (album.kind === "expanded") return "Expanded playlist";
+  return `${album.archiveFormat?.toUpperCase() ?? "Archive"} playlist`;
 }
 
 function AlbumArtwork({ album, large = false }: { album: Album; large?: boolean }) {
@@ -115,7 +115,7 @@ function DetailDialog({
           <div>
             <span className="eyebrow">{albumType(album)}</span>
             <h2>{album.title}</h2>
-            <nav className="breadcrumbs" aria-label="Album location">
+            <nav className="breadcrumbs" aria-label="Playlist location">
               {album.pathSegments.slice(0, -1).map((segment, index) => (
                 <span key={segment.id}>
                   {index > 0 && <b aria-hidden="true">/</b>}
@@ -175,7 +175,7 @@ function DetailDialog({
           </section>
           {nested.length > 0 && (
             <section>
-              <h3>Nested albums <span className="count">{nested.length}</span></h3>
+              <h3>Nested playlists <span className="count">{nested.length}</span></h3>
               <ul className="nested-list">
                 {nested.map((candidate) => (
                   <li key={candidate.id}>
@@ -228,7 +228,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
   const [favourites, setFavourites] = useState<string[]>(readFavourites);
   const [showFavourites, setShowFavourites] = useState(false);
   const [theme, setTheme] = useState<Theme>(() =>
-    window.localStorage.getItem(THEME_KEY) === "dark" ? "dark" : "light"
+    window.localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark"
   );
   const favouriteIds = useMemo(() => new Set(favourites), [favourites]);
   const albums = useMemo(() => {
@@ -289,12 +289,12 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
           <span className="eyebrow">MYO Idea Exchange</span>
           <h1>Find the next story.</h1>
           <p>
-            A fast, visual index of albums shared in the Yoto Make Your Own
+            A fast, visual index of playlists shared in the Yoto Make Your Own
             catalogue.
           </p>
         </div>
         <dl className="hero__stats">
-          <div><dt>Albums</dt><dd>{catalogue.stats.albums}</dd></div>
+          <div><dt>Playlists</dt><dd>{catalogue.stats.albums}</dd></div>
           <div><dt>Collections</dt><dd>{catalogue.stats.collections}</dd></div>
           <div><dt>With covers</dt><dd>{catalogue.stats.covers}</dd></div>
         </dl>
@@ -315,7 +315,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
               aria-pressed={!showFavourites}
               onClick={() => setShowFavourites(false)}
             >
-              All albums
+              All playlists
             </button>
             <button
               type="button"
@@ -338,7 +338,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
           </label>
           <div className="filters">
             <label>
-              <span>Album type</span>
+              <span>Playlist type</span>
               <select value={state.kind} onChange={(event) => update("kind", event.target.value as CatalogueQuery["kind"])}>
                 <option value="all">All types</option>
                 <option value="archive">Archives</option>
@@ -388,7 +388,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
           <h2>
             {showFavourites
               ? `${albums.length} ${albums.length === 1 ? "favourite" : "favourites"}`
-              : albums.length === 1 ? "1 album" : `${albums.length} albums`}
+              : albums.length === 1 ? "1 playlist" : `${albums.length} playlists`}
           </h2>
           {(state.query || Object.entries(state).some(([key, value]) => key !== "sort" && key !== "selected" && value !== "all" && value !== "")) && (
             <button
@@ -402,7 +402,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
         </div>
 
         {albums.length ? (
-          <section className="album-grid" aria-label="Album results">
+          <section className="album-grid" aria-label="Playlist results">
             {albums.map((album) => (
               <article className="album-card" key={album.id}>
                 <FavouriteButton
@@ -436,11 +436,11 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
             <h2>
               {showFavourites
                 ? "No favourites match these filters."
-                : "No albums match those filters."}
+                : "No playlists match those filters."}
             </h2>
             <p>
               {showFavourites
-                ? "Favourite an album, or broaden the selected filters."
+                ? "Favourite a playlist, or broaden the selected filters."
                 : "Try a broader search or clear the selected filters."}
             </p>
           </section>

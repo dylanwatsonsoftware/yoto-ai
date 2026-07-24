@@ -120,7 +120,7 @@ describe("catalogue app", () => {
 
     await user.clear(screen.getByRole("searchbox"));
     await user.selectOptions(
-      screen.getByRole("combobox", { name: /album type/i }),
+      screen.getByRole("combobox", { name: /playlist type/i }),
       "archive"
     );
     expect(screen.queryByText("Ada Twist")).not.toBeInTheDocument();
@@ -149,7 +149,19 @@ describe("catalogue app", () => {
     const user = userEvent.setup();
     render(<App catalogue={catalogue} />);
     await user.type(screen.getByRole("searchbox"), "not in catalogue");
-    expect(screen.getByText(/no albums match/i)).toBeInTheDocument();
+    expect(screen.getByText(/no playlists match/i)).toBeInTheDocument();
+  });
+
+  it("uses playlist terminology throughout the user interface", () => {
+    render(<App catalogue={catalogue} />);
+
+    expect(screen.getByText("Playlists")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "All playlists" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("combobox", { name: "Playlist type" })
+    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "2 playlists" })).toBeInTheDocument();
+    expect(screen.queryByText(/\balbums?\b/i)).not.toBeInTheDocument();
   });
 
   it("favourites albums, persists them, and shows them in a dedicated view", async () => {
@@ -203,19 +215,22 @@ describe("catalogue app", () => {
     );
   });
 
-  it("switches to dark mode and restores the saved theme", async () => {
+  it("defaults to dark mode and restores a saved light preference", async () => {
     const user = userEvent.setup();
     const firstRender = render(<App catalogue={catalogue} />);
 
-    await user.click(screen.getByRole("button", { name: /switch to dark mode/i }));
     expect(document.documentElement).toHaveAttribute("data-theme", "dark");
     expect(window.localStorage.getItem("yoto-catalogue-theme")).toBe("dark");
     expect(
       screen.getByRole("button", { name: /switch to light mode/i })
     ).toHaveAttribute("aria-pressed", "true");
 
+    await user.click(screen.getByRole("button", { name: /switch to light mode/i }));
+    expect(document.documentElement).toHaveAttribute("data-theme", "light");
+    expect(window.localStorage.getItem("yoto-catalogue-theme")).toBe("light");
+
     firstRender.unmount();
     render(<App catalogue={catalogue} />);
-    expect(document.documentElement).toHaveAttribute("data-theme", "dark");
+    expect(document.documentElement).toHaveAttribute("data-theme", "light");
   });
 });
