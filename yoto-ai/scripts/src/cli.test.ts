@@ -29,6 +29,9 @@ describe("CLI support", () => {
 
   it("allows offline playlist validation without a Yoto client ID", () => {
     expect(requiresClientId(["playlist", "draft", "--input", "draft.json"])).toBe(false);
+    expect(
+      requiresClientId(["playlist", "preview-create", "--input", "/tmp/package"])
+    ).toBe(true);
     expect(requiresClientId(["devices", "list"])).toBe(true);
     expect(requiresClientId(["auth", "login"])).toBe(true);
   });

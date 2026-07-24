@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { PublishPreview } from "./publishing.js";
 
 export interface CompletedTranscode {
@@ -98,6 +99,11 @@ function yotoFormat(format: string): string {
   return format === "m4a" ? "x-m4a" : format;
 }
 
+function chapterKey(sourceId: string): string {
+  const digest = createHash("sha256").update(sourceId).digest("hex");
+  return `import-${digest.slice(0, 13)}`;
+}
+
 export function buildYotoCard(input: {
   preview: PublishPreview;
   audio: CompletedTranscode[];
@@ -135,7 +141,7 @@ export function buildYotoCard(input: {
     input.cover as { coverImage?: { mediaUrl?: string } } | null
   )?.coverImage?.mediaUrl;
   const chapter = {
-    key: `import-${input.preview.package.source.id}`,
+    key: chapterKey(input.preview.package.source.id),
     title: input.preview.package.title,
     overlayLabel: "1",
     defaultTrackDisplay: "1",

@@ -30,7 +30,7 @@ export function parseCliArguments(rawArgs: string[]): {
 export function requiresClientId(args: string[]): boolean {
   return !(
     args[0] === "playlist" &&
-    ["draft", "inspect-package", "preview-create", "confirm"].includes(args[1] ?? "")
+    ["draft", "inspect-package", "confirm"].includes(args[1] ?? "")
   );
 }
 

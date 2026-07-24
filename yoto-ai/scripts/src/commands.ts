@@ -4,6 +4,7 @@ import { inspectPlaylistPackage } from "./package-contract.js";
 import {
   applyPreview,
   createConfirmationToken,
+  findSimilarPlaylists,
   previewCreate,
   type PublishPreview,
   type YotoWriteApi,
@@ -77,7 +78,23 @@ export async function executeCommand(
   }
   if (group === "playlist" && action === "preview-create") {
     const inputPath = optionValue(args, "--input");
-    return previewCreate(inputPath, await inspectPlaylistPackage(inputPath));
+    const playlistPackage = await inspectPlaylistPackage(inputPath);
+    const similar = findSimilarPlaylists(
+      playlistPackage.title,
+      await dependencies.service.listCards()
+    );
+    if (similar.length) {
+      const candidates = similar
+        .map(
+          (card) =>
+            `${card.title} (${card.cardId}, ${card.match}, ${Math.round(card.score * 100)}%)`
+        )
+        .join("; ");
+      throw new UsageError(
+        `Possible duplicate Yoto playlist found: ${candidates}. Use playlist preview-append with the intended card ID, or choose a distinct title.`
+      );
+    }
+    return previewCreate(inputPath, playlistPackage);
   }
   if (group === "playlist" && action === "preview-append") {
     const inputPath = optionValue(args, "--input");

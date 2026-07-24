@@ -12,7 +12,7 @@ const manifest: PlaylistPackage = {
   title: "Stories",
   source: {
     type: "drive",
-    id: "folder-1",
+    id: "1mDJTHB-UPWAzWJYudJ0EhYeS-lT0ROrd",
     description: "MYO exchange",
     permission: "User confirmed permission"
   },
@@ -110,6 +110,10 @@ describe("Yoto card payload", () => {
         media: { duration: 10, fileSize: 1234 }
       }
     });
+    const chapterKey = (
+      card.content as { chapters: Array<{ key: string }> }
+    ).chapters[0].key;
+    expect(chapterKey.length).toBeLessThanOrEqual(20);
   });
 
   it("preserves Yoto's validation message when card creation fails", async () => {

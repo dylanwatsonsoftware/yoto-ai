@@ -37,14 +37,19 @@ Use JSON mode for orchestration. Never include command output containing persona
    - `playlist preview-create --input <dir> --output <preview-file> --json`
    - `playlist preview-append --input <dir> --card-id <id> --output <preview-file> --json`
    - `playlist apply --preview <file> --confirmation-token <token> --json`
-3. Validate every package and generate a preview before any upload.
-4. For append-by-name requests, run `library list`, require exactly one exact title match, show its card ID, then preview with that ID. Reject zero or multiple exact matches.
-5. Show one consolidated preview containing every audio, cover, icon, duplicate decision, and final card change. Ask exactly one confirmation.
-6. Only after explicit confirmation, run `playlist confirm --preview <file> --json`, then pass its token to `playlist apply`.
-7. Let `playlist apply` resume any checkpointed upload IDs and poll until Yoto
+3. Validate every package and generate a preview before any upload. Before
+   every create preview, search the live Yoto library for exact and similar
+   normalized titles.
+4. If a possible duplicate exists, stop and show every candidate title, card
+   ID, match type, and similarity score. Use `playlist preview-append` only
+   after the user chooses that card; otherwise require a distinct title.
+5. For append-by-name requests, run `library list`, require exactly one exact title match, show its card ID, then preview with that ID. Reject zero or multiple exact matches.
+6. Show one consolidated preview containing every audio, cover, icon, duplicate decision, and final card change. Ask exactly one confirmation.
+7. Only after explicit confirmation, run `playlist confirm --preview <file> --json`, then pass its token to `playlist apply`.
+8. Let `playlist apply` resume any checkpointed upload IDs and poll until Yoto
    returns `transcodedSha256` and `transcodedInfo`. A transcode-start response is
    not a completed upload.
-8. Refuse deletion, player commands, settings changes, TTS, and streaming.
+9. Refuse deletion, player commands, settings changes, TTS, and streaming.
 
 ## Authentication recovery
 
@@ -85,4 +90,6 @@ restart the agent with a new environment variable.
 - Require provenance and permission for every playlist draft.
 - Upload icons only after local 16×16 RGBA validation and use `autoConvert=false`.
 - Preserve all existing card content and metadata when appending.
+- Never create a playlist until the authenticated library duplicate check
+  returns no exact or similar title candidates.
 - Read [references/contracts.md](references/contracts.md) when interpreting scopes, errors, or playlist requirements.

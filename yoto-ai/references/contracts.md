@@ -75,5 +75,7 @@ Validation never uploads media, assigns a card ID, or publishes content.
 - Map an icon upload's `displayIcon.mediaId` to
   `display.icon16x16: "yoto:#<mediaId>"`.
 - Map a cover upload's `coverImage.mediaUrl` to `metadata.cover.imageL`.
+- Keep every chapter and track `key` at 20 characters or fewer. Derive long
+  source identifiers into stable, collision-resistant short keys.
 - Attempt the final card mutation exactly once and retain its response body in
   any reported error. Never automatically retry that mutation.

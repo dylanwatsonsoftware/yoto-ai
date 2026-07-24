@@ -20,6 +20,13 @@ export interface ExistingPlaylist {
   metadata?: unknown;
 }
 
+export interface SimilarPlaylist {
+  cardId: string;
+  title: string;
+  match: "exact" | "similar";
+  score: number;
+}
+
 export interface PublishPreview {
   version: 1;
   operation: "create" | "append";
@@ -38,6 +45,43 @@ export interface PublishPreview {
 
 function normalized(value: string): string {
   return value.normalize("NFKC").trim().toLocaleLowerCase();
+}
+
+function titleTokens(value: string): string[] {
+  const stopWords = new Set(["a", "an", "and", "the"]);
+  return normalized(value)
+    .replace(/&/g, " and ")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .split(/\s+/)
+    .filter((token) => token && !stopWords.has(token));
+}
+
+function tokenDice(left: string[], right: string[]): number {
+  const a = new Set(left);
+  const b = new Set(right);
+  if (!a.size || !b.size) return 0;
+  const intersection = [...a].filter((token) => b.has(token)).length;
+  return (2 * intersection) / (a.size + b.size);
+}
+
+export function findSimilarPlaylists(
+  title: string,
+  cards: Array<{ cardId?: string; title?: string }>
+): SimilarPlaylist[] {
+  const wanted = titleTokens(title);
+  return cards.flatMap((card) => {
+    if (!card.cardId || !card.title) return [];
+    const candidate = titleTokens(card.title);
+    const score = tokenDice(wanted, candidate);
+    const exact = wanted.join(" ") === candidate.join(" ");
+    if (!exact && score < 0.75) return [];
+    return [{
+      cardId: card.cardId,
+      title: card.title,
+      match: exact ? "exact" as const : "similar" as const,
+      score
+    }];
+  });
 }
 
 function duplicateReason(

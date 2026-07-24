@@ -142,11 +142,14 @@ this application does not have persistent access.
 - Prepare and locally validate playlist JSON.
 - Inspect `playlist-package.json` v1 packages.
 - Preview an entire playlist create or append without uploading.
+- Check the live Yoto library for exact or similar titles before creating.
 - Upload and publish only after one confirmation bound to that exact preview.
 
 Playlist drafts require HTTPS or `yoto:#` track references,
-source-and-permission metadata, and unique chapter and track keys. Validation
-does not require a Yoto client ID and never publishes the draft.
+source-and-permission metadata, and unique chapter and track keys. Draft and
+package validation do not require a Yoto client ID and never publish.
+Create-preview requires authentication because it performs the live duplicate
+check.
 
 ## Safety boundaries
 

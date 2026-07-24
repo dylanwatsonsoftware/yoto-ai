@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   applyPreview,
   createConfirmationToken,
+  findSimilarPlaylists,
   previewCreate
 } from "./publishing.js";
 import type { PlaylistPackage } from "./package-contract.js";
@@ -47,6 +48,28 @@ const packageManifest: PlaylistPackage = {
 };
 
 describe("Yoto publishing", () => {
+  it("finds exact and meaningfully similar playlist titles", () => {
+    const matches = findSimilarPlaylists(
+      "Ada Twist Scientist & The Questioneers",
+      [
+        {
+          cardId: "card-exact",
+          title: "Ada Twist Scientist and the Questioneers"
+        },
+        {
+          cardId: "card-similar",
+          title: "Ada Twist Scientist Questioneers Collection"
+        },
+        { cardId: "card-other", title: "Bedtime Stories" }
+      ]
+    );
+
+    expect(matches).toEqual([
+      expect.objectContaining({ cardId: "card-exact", match: "exact" }),
+      expect.objectContaining({ cardId: "card-similar", match: "similar" })
+    ]);
+  });
+
   it("uploads every asset only after one confirmation and mutates once", async () => {
     const preview = previewCreate("/package", packageManifest);
     const api = {
