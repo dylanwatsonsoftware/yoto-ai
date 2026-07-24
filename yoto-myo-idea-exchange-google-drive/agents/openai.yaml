@@ -1,0 +1,4 @@
+interface:
+  display_name: "Yoto MYO Idea Exchange Drive"
+  short_description: "Search and import the MYO Idea Exchange catalogue"
+  default_prompt: "Use $yoto-myo-idea-exchange-google-drive to search the indexed catalogue and prepare a Yoto playlist package."

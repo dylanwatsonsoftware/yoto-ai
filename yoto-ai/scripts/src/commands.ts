@@ -1,5 +1,14 @@
 import type { TokenStore } from "./auth.js";
 import { validatePlaylistDraft } from "./playlist.js";
+import { inspectPlaylistPackage } from "./package-contract.js";
+import {
+  applyPreview,
+  createConfirmationToken,
+  previewCreate,
+  type PublishPreview,
+  type YotoWriteApi,
+  type UploadCheckpoint
+} from "./publishing.js";
 import type { YotoService } from "./yoto-service.js";
 
 interface AuthCommands {
@@ -13,6 +22,9 @@ interface CommandDependencies {
   service: YotoService;
   readFile(path: string): Promise<string>;
   tokenStore: TokenStore;
+  writeApi?: YotoWriteApi;
+  confirmationSecret?: string;
+  checkpoint?: UploadCheckpoint;
 }
 
 export class UnsupportedOperationError extends Error {}
@@ -59,6 +71,67 @@ export async function executeCommand(
     const draft = validatePlaylistDraft(JSON.parse(await dependencies.readFile(inputPath)));
     return { published: false, draft };
   }
+  if (group === "playlist" && action === "inspect-package") {
+    const inputPath = optionValue(args, "--input");
+    return { package: await inspectPlaylistPackage(inputPath), valid: true };
+  }
+  if (group === "playlist" && action === "preview-create") {
+    const inputPath = optionValue(args, "--input");
+    return previewCreate(inputPath, await inspectPlaylistPackage(inputPath));
+  }
+  if (group === "playlist" && action === "preview-append") {
+    const inputPath = optionValue(args, "--input");
+    const cardId = optionValue(args, "--card-id");
+    const card = (await dependencies.service.getCard(cardId)) as unknown as {
+      title?: string;
+      content?: { chapters?: Array<{ tracks?: Array<{ title?: string; duration?: number }> }> };
+    };
+    const existingTracks = (card.content?.chapters ?? []).flatMap((chapter) =>
+      (chapter.tracks ?? []).map((track) => ({
+        title: track.title ?? "",
+        artist: "",
+        duration: track.duration ?? 0
+      }))
+    );
+    return previewCreate(inputPath, await inspectPlaylistPackage(inputPath), {
+      cardId,
+      title: card.title ?? "",
+      tracks: existingTracks,
+      metadata: card
+    });
+  }
+  if (group === "playlist" && action === "confirm") {
+    if (!dependencies.confirmationSecret) {
+      throw new UsageError("YOTO_CONFIRMATION_SECRET is required");
+    }
+    const preview = JSON.parse(
+      await dependencies.readFile(optionValue(args, "--preview"))
+    ) as PublishPreview;
+    return {
+      confirmationToken: createConfirmationToken(
+        preview,
+        dependencies.confirmationSecret
+      )
+    };
+  }
+  if (group === "playlist" && action === "apply") {
+    if (!dependencies.confirmationSecret) {
+      throw new UsageError("YOTO_CONFIRMATION_SECRET is required");
+    }
+    if (!dependencies.writeApi) {
+      throw new UnsupportedOperationError("Yoto publishing adapter is unavailable");
+    }
+    const preview = JSON.parse(
+      await dependencies.readFile(optionValue(args, "--preview"))
+    ) as PublishPreview;
+    return applyPreview(
+      preview,
+      optionValue(args, "--confirmation-token"),
+      dependencies.confirmationSecret,
+      dependencies.writeApi,
+      dependencies.checkpoint
+    );
+  }
 
   if (
     group === "devices" ||
@@ -72,4 +145,3 @@ export async function executeCommand(
   }
   throw new UsageError("Unknown command");
 }
-

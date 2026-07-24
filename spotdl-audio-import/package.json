@@ -1,0 +1,25 @@
+{
+  "name": "spotdl-audio-import-skill",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run scripts/src",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "build": "tsc -p tsconfig.json",
+    "import": "tsx scripts/src/cli.ts"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "sharp": "0.35.3",
+    "zod": "4.1.12"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.1",
+    "tsx": "4.21.0",
+    "typescript": "5.9.3",
+    "vitest": "4.1.10"
+  }
+}

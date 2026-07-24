@@ -1,0 +1,4 @@
+interface:
+  display_name: "spotDL Audio Import"
+  short_description: "Prepare permission-gated playlist packages with spotDL"
+  default_prompt: "Use $spotdl-audio-import to preview and prepare an authorized audio playlist package."

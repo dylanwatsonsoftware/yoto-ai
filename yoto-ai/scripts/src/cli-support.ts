@@ -10,7 +10,10 @@ export interface ClassifiedError {
 }
 
 export function requiresClientId(args: string[]): boolean {
-  return !(args[0] === "playlist" && args[1] === "draft");
+  return !(
+    args[0] === "playlist" &&
+    ["draft", "inspect-package", "preview-create", "confirm"].includes(args[1] ?? "")
+  );
 }
 
 export function renderHuman(value: unknown): string {

@@ -1,6 +1,6 @@
 ---
 name: yoto-ai
-description: Safely inspect a user's Yoto Make Your Own library, authenticate or troubleshoot a local Yoto public client, and prepare schema-validated playlist JSON drafts without publishing. Use for Yoto setup, authentication failures, library inspection, or draft playlist preparation.
+description: Authenticate with Yoto, inspect a Make Your Own library, validate portable playlist packages, and safely preview and publish a whole create/append operation after one explicit confirmation. Use for Yoto setup, authentication, library inspection, package validation, or publishing.
 ---
 
 # Yoto AI
@@ -25,17 +25,23 @@ Use JSON mode for orchestration. Never include command output containing persona
 
 ## Workflow
 
-1. Classify the request as read, draft, write, or control.
-2. Execute read and draft operations only:
+1. Classify the request as read, draft, package preview, confirmed write, or control.
+2. Available operations:
    - `auth login`
    - `auth status`
    - `auth logout`
    - `library list`
    - `library show <card-id>`
    - `playlist draft --input <json-file>`
-3. For playlist work, draft JSON locally, record content source and permission, then validate it with `playlist draft`.
-4. Present validation results and clearly state that nothing was published.
-5. Refuse write or control requests. Explain that publishing, uploads, deletion, player commands, settings changes, TTS, and streaming are outside this safe MVP.
+   - `playlist inspect-package --input <dir> --json`
+   - `playlist preview-create --input <dir> --output <preview-file> --json`
+   - `playlist preview-append --input <dir> --card-id <id> --output <preview-file> --json`
+   - `playlist apply --preview <file> --confirmation-token <token> --json`
+3. Validate every package and generate a preview before any upload.
+4. For append-by-name requests, run `library list`, require exactly one exact title match, show its card ID, then preview with that ID. Reject zero or multiple exact matches.
+5. Show one consolidated preview containing every audio, cover, icon, duplicate decision, and final card change. Ask exactly one confirmation.
+6. Only after explicit confirmation, run `playlist confirm --preview <file> --json`, then pass its token to `playlist apply`.
+7. Refuse deletion, player commands, settings changes, TTS, and streaming.
 
 ## Authentication recovery
 
@@ -63,8 +69,10 @@ restart the agent with a new environment variable.
 
 - Never print, store in files, or send access or refresh tokens to an LLM.
 - Keep refresh tokens only in the operating-system keychain.
-- Never retry a write; this skill contains no write operation.
+- Never retry the final card mutation automatically. Media uploads may resume by checksum, but inspect the preview and checkpoint before recovery.
 - Treat child-related names, emails, listening activity, and content as sensitive.
 - Require HTTPS for remote track URLs.
 - Require provenance and permission for every playlist draft.
+- Upload icons only after local 16×16 RGBA validation and use `autoConvert=false`.
+- Preserve all existing card content and metadata when appending.
 - Read [references/contracts.md](references/contracts.md) when interpreting scopes, errors, or playlist requirements.
