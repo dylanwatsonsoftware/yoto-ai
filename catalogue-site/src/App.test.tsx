@@ -113,7 +113,7 @@ describe("catalogue app", () => {
       screen.getByRole("searchbox", { name: /search catalogue/i }),
       "scientist"
     );
-    expect(screen.getByText("Ada Twist")).toBeInTheDocument();
+    expect(await screen.findByText("Ada Twist")).toBeInTheDocument();
     expect(screen.queryByText("Bluey Dance")).not.toBeInTheDocument();
 
     await user.clear(screen.getByRole("searchbox"));
@@ -123,7 +123,7 @@ describe("catalogue app", () => {
       "archive"
     );
     expect(screen.queryByText("Ada Twist")).not.toBeInTheDocument();
-    expect(screen.getByText("Bluey Dance")).toBeInTheDocument();
+    expect(await screen.findByText("Bluey Dance")).toBeInTheDocument();
     expect(screen.queryByText(/contents uninspected/i)).not.toBeInTheDocument();
     expect(window.location.search).toContain("kind=archive");
   });
@@ -184,9 +184,54 @@ describe("catalogue app", () => {
 
     await user.type(screen.getByRole("searchbox"), "scientist");
 
-    expect(screen.getByRole("heading", { name: "1 search result" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "1 search result" })
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open Ada Twist" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /open folder/i })).not.toBeInTheDocument();
+  });
+
+  it("debounces search and progressively reveals large result sets", async () => {
+    const user = userEvent.setup();
+    const manyAlbums = Array.from({ length: 55 }, (_, index) => ({
+      ...catalogue.albums[0],
+      id: `shared-${index}`,
+      title: `Shared playlist ${String(index + 1).padStart(2, "0")}`,
+      path: `MYO/Science/Shared playlist ${index + 1}`,
+      pathSegments: [
+        { id: "root", name: "MYO" },
+        { id: "science", name: "Science" },
+        { id: `shared-${index}`, name: `Shared playlist ${index + 1}` }
+      ]
+    }));
+    render(
+      <App
+        catalogue={{
+          ...catalogue,
+          stats: { ...catalogue.stats, albums: manyAlbums.length },
+          albums: manyAlbums
+        }}
+      />
+    );
+
+    await user.type(screen.getByRole("searchbox"), "Shared");
+    expect(window.location.search).not.toContain("q=Shared");
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("heading", { name: "55 search results" })
+      ).toBeInTheDocument()
+    );
+    expect(
+      screen.getAllByRole("button", { name: /open shared playlist/i })
+    ).toHaveLength(50);
+
+    await user.click(
+      screen.getByRole("button", { name: "Load 5 more playlists" })
+    );
+    expect(
+      screen.getAllByRole("button", { name: /open shared playlist/i })
+    ).toHaveLength(55);
   });
 
   it("opens an accessible detail view with breadcrumbs and tracks", async () => {
@@ -211,7 +256,7 @@ describe("catalogue app", () => {
     const user = userEvent.setup();
     render(<App catalogue={catalogue} />);
     await user.type(screen.getByRole("searchbox"), "not in catalogue");
-    expect(screen.getByText(/no playlists match/i)).toBeInTheDocument();
+    expect(await screen.findByText(/no playlists match/i)).toBeInTheDocument();
   });
 
   it("uses playlist terminology throughout the user interface", () => {
@@ -230,7 +275,9 @@ describe("catalogue app", () => {
     const firstRender = render(<App catalogue={catalogue} />);
 
     await user.type(screen.getByRole("searchbox"), "Ada");
-    expect(screen.getByRole("button", { name: "List view" })).toHaveAttribute(
+    expect(
+      await screen.findByRole("button", { name: "List view" })
+    ).toHaveAttribute(
       "aria-pressed",
       "true"
     );
@@ -314,10 +361,11 @@ describe("catalogue app", () => {
       screen.queryByRole("button", { name: "Open folder Other Language Content" })
     ).not.toBeInTheDocument();
     await user.type(screen.getByRole("searchbox"), "Bonjour");
+    expect(await screen.findByText(/no playlists match/i)).toBeInTheDocument();
     expect(screen.queryByText("Bonjour les amis")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("checkbox", { name: "Include other languages" }));
-    expect(screen.getByText("Bonjour les amis")).toBeInTheDocument();
+    expect(await screen.findByText("Bonjour les amis")).toBeInTheDocument();
   });
 
   it("shows folder subtitles for playlists and nested playlists", async () => {
@@ -333,7 +381,7 @@ describe("catalogue app", () => {
     render(<App catalogue={nestedCatalogue} />);
 
     await user.type(screen.getByRole("searchbox"), "Ada");
-    expect(screen.getByText("Folder: Science")).toBeInTheDocument();
+    expect(await screen.findByText("Folder: Science")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /open ada twist/i }));
     const dialog = screen.getByRole("dialog", { name: "Ada Twist" });
     const nestedItem = within(dialog).getByText("Bluey Dance").closest("li");

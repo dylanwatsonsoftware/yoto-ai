@@ -508,6 +508,23 @@ main {
   cursor: pointer;
 }
 
+.load-more {
+  display: block;
+  min-width: min(280px, 100%);
+  margin: 20px auto 0;
+  padding: 12px 18px;
+  color: #fff;
+  background: var(--purple);
+  border: 0;
+  border-radius: 999px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.load-more:hover {
+  background: var(--purple-dark);
+}
+
 .album-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));

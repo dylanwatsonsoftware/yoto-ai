@@ -16,6 +16,8 @@ import "./styles.css";
 const FAVOURITES_KEY = "yoto-catalogue-favourites";
 const THEME_KEY = "yoto-catalogue-theme";
 const LAYOUT_KEY = "yoto-catalogue-layout";
+const SEARCH_DEBOUNCE_MS = 150;
+const RESULTS_BATCH_SIZE = 50;
 type Theme = "light" | "dark";
 type Layout = "gallery" | "list";
 
@@ -242,6 +244,8 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
     ...defaultFilters,
     ...readCatalogueQuery(window.location.search)
   }));
+  const [searchInput, setSearchInput] = useState(state.query);
+  const [resultLimit, setResultLimit] = useState(RESULTS_BATCH_SIZE);
   const [favourites, setFavourites] = useState<string[]>(readFavourites);
   const [showFavourites, setShowFavourites] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -288,6 +292,8 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
   const visibleAlbums = browseMode
     ? albums.filter((album) => album.parentId === currentFolderId)
     : albums;
+  const displayedAlbums = visibleAlbums.slice(0, resultLimit);
+  const remainingAlbums = visibleAlbums.length - displayedAlbums.length;
   const folderTrail: Array<Pick<Collection, "id" | "title">> = [
     { id: catalogue.root.id, title: catalogue.root.title },
     ...(currentFolder
@@ -316,6 +322,35 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
     state.includeOtherLanguages === true;
 
   useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setState((current) =>
+        current.query === searchInput
+          ? current
+          : {
+              ...current,
+              query: searchInput,
+              collection: searchInput.trim() ? "all" : current.collection,
+              selected: undefined
+            }
+      );
+    }, SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(timeout);
+  }, [searchInput]);
+
+  useEffect(() => {
+    setResultLimit(RESULTS_BATCH_SIZE);
+  }, [
+    showFavourites,
+    state.query,
+    state.kind,
+    state.collection,
+    state.cover,
+    state.depth,
+    state.sort,
+    state.includeOtherLanguages
+  ]);
+
+  useEffect(() => {
     const query = writeCatalogueQuery(state);
     window.history.replaceState(
       null,
@@ -325,11 +360,14 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
   }, [state]);
 
   useEffect(() => {
-    const restoreFromHistory = () =>
-      setState({
+    const restoreFromHistory = () => {
+      const restored = {
         ...defaultFilters,
         ...readCatalogueQuery(window.location.search)
-      });
+      };
+      setSearchInput(restored.query);
+      setState(restored);
+    };
     window.addEventListener("popstate", restoreFromHistory);
     return () => window.removeEventListener("popstate", restoreFromHistory);
   }, []);
@@ -412,16 +450,8 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
             <span>Search catalogue</span>
             <input
               type="search"
-              value={state.query}
-              onChange={(event) => {
-                const query = event.target.value;
-                setState((current) => ({
-                  ...current,
-                  query,
-                  collection: query.trim() ? "all" : current.collection,
-                  selected: undefined
-                }));
-              }}
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
               placeholder="Title, folder, collection or track…"
             />
           </label>
@@ -590,7 +620,10 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
               <button
                 type="button"
                 className="text-button"
-                onClick={() => setState({ ...defaultFilters })}
+                onClick={() => {
+                  setSearchInput("");
+                  setState({ ...defaultFilters });
+                }}
               >
                 Clear filters
               </button>
@@ -627,7 +660,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
             className={`album-grid ${layout === "list" ? "album-grid--list" : ""}`}
             aria-label="Playlist results"
           >
-            {visibleAlbums.map((album) => (
+            {displayedAlbums.map((album) => (
               <article className="album-card" key={album.id}>
                 <FavouriteButton
                   album={album}
@@ -681,6 +714,17 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
             </p>
           </section>
         ) : null}
+        {remainingAlbums > 0 && (
+          <button
+            type="button"
+            className="load-more"
+            onClick={() =>
+              setResultLimit((current) => current + RESULTS_BATCH_SIZE)
+            }
+          >
+            Load {Math.min(RESULTS_BATCH_SIZE, remainingAlbums)} more playlists
+          </button>
+        )}
       </main>
       <footer>
         <span>Read-only Drive snapshot</span>
