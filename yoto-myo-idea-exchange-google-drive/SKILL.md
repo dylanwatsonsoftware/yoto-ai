@@ -29,7 +29,17 @@ npm run catalogue -- index status --json
 npm run catalogue -- search "bluey dance" --json
 ```
 
-Before each search, incrementally scan known parents. If a child query reaches its cap, split it into non-overlapping modified-time windows until every window is below the cap. Record incomplete windows and do not call the scan complete while any remain. Revalidate the chosen Drive ID, parents, size, modified time, and checksum live before download.
+Before each search, incrementally scan known parents. Do not assume the
+requested `top_k` is the connector's effective response cap: large folder
+listings can be truncated below it without an explicit partial-result flag.
+Preserve the previous complete snapshot as a comparison baseline. For any
+direct listing at or above 100 entries, supplement it with folder-only parent
+queries split into non-overlapping modified-time windows until every window is
+below the observed response cap, then union the results by Drive ID. Compare
+the new snapshot with the baseline before export and report additions and
+removals; never silently discard previous entries. Record incomplete windows
+and do not call the scan complete while any remain. Revalidate the chosen
+Drive ID, parents, size, modified time, and checksum live before download.
 
 To discard the cache:
 
@@ -45,8 +55,11 @@ Use this workflow when the user asks to refresh, rebuild, or update the public
 MYO catalogue website. Keep Drive read-only and export only the allowlisted
 public catalogue fields.
 
-1. Recursively refresh root `12ueGfirgSd21B7ShXZiATmrZCl3J4OqI` using the
-   connected Drive tool and the index rules above.
+1. Preserve the previous complete snapshot and catalogue as comparison
+   baselines, then recursively refresh root
+   `12ueGfirgSd21B7ShXZiATmrZCl3J4OqI` using the connected Drive tool and the
+   index rules above. Do not replace the current cache unless the new snapshot
+   has no unresolved windows and the baseline comparison has been reviewed.
 2. Write the complete connector snapshot to `/tmp/drive-items.json`. Include
    only `id`, `parentId`, `path`, `title`, `mimeType`, `size`, `modifiedTime`,
    and checksum. Include the root folder itself.
