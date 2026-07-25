@@ -1,7 +1,7 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import App from "./App";
+import App, { shouldShowIncompleteNotice } from "./App";
 import type { Catalogue } from "./catalogue";
 
 const catalogue: Catalogue = {
@@ -298,6 +298,14 @@ describe("catalogue app", () => {
       "The latest Drive scan could not confirm that the cached collection is complete."
     );
     expect(screen.getByRole("status")).not.toHaveTextContent("starter snapshot");
+  });
+
+  it("only shows incomplete catalogue notices on local hosts", () => {
+    expect(shouldShowIncompleteNotice(false, "localhost")).toBe(true);
+    expect(shouldShowIncompleteNotice(false, "127.0.0.1")).toBe(true);
+    expect(shouldShowIncompleteNotice(false, "::1")).toBe(true);
+    expect(shouldShowIncompleteNotice(false, "yoto-myo.vercel.app")).toBe(false);
+    expect(shouldShowIncompleteNotice(true, "localhost")).toBe(false);
   });
 
   it("uses playlist terminology throughout the user interface", () => {

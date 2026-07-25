@@ -21,6 +21,20 @@ const RESULTS_BATCH_SIZE = 50;
 type Theme = "light" | "dark";
 type Layout = "gallery" | "list";
 
+export function shouldShowIncompleteNotice(
+  scanComplete: boolean,
+  hostname: string
+): boolean {
+  const localHost =
+    hostname === "localhost" ||
+    hostname.endsWith(".localhost") ||
+    hostname === "127.0.0.1" ||
+    hostname === "0.0.0.0" ||
+    hostname === "::1" ||
+    hostname === "[::1]";
+  return !scanComplete && localHost;
+}
+
 function readFavourites(): string[] {
   try {
     const value = JSON.parse(window.localStorage.getItem(FAVOURITES_KEY) ?? "[]");
@@ -472,7 +486,10 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
       </header>
 
       <main>
-        {!catalogue.scan.complete && (
+        {shouldShowIncompleteNotice(
+          catalogue.scan.complete,
+          window.location.hostname
+        ) && (
           <p className="notice" role="status">
             The latest Drive scan could not confirm that the cached collection
             is complete.
