@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-24T10:14:55.393Z",
+  "generatedAt": "2026-07-25T01:39:51.032Z",
   "root": {
     "id": "12ueGfirgSd21B7ShXZiATmrZCl3J4OqI",
     "title": "MYO Collection"
   },
   "scan": {
-    "complete": true
+    "complete": false
   },
   "stats": {
-    "albums": 3489,
+    "albums": 3492,
     "collections": 427,
     "covers": 542
   },
@@ -1633,6 +1633,7 @@
         "1_3fC2MXxGJa8uMUbmsBevVR_inG_5ZkU",
         "1_AZ72o5K_DzpzDKTD0uVC7sw8EPw6Sxa",
         "1_HSAn2Ab88NZ9Xy1pKFvfPIQB0Wj7lHC",
+        "1_hZvfx8mZBDhl2B93GbFXtg1M_unD1i6",
         "1_JsrUcIgN0ul2Ue-hfRNokpQgbadMHZv",
         "1_qtucFC8SiYlXFPbgAVpgO7R_K7sxO1H",
         "1_zxhv7LRVp4uKISnpN9tF4Ik6vBOcz5_",
@@ -1792,6 +1793,7 @@
         "1p99QSm5RX1oCAajnTVMIsX3J1XPfibwX",
         "1pcMdg8VBIFxYrUj47uJtTM9wvALXipsC",
         "1PFiqBvW6_lv-EwJknZSJ9uWwSjo6Gkn0",
+        "1Pi9KwXPlKacGjDt5dT5w88el4IFcC0cx",
         "1pql402bzVIL2ch7W01iFQV10QdmNG6Vl",
         "1q6xzLoctVzU817QxMgYCcl3EoPNDWcrM",
         "1qBcfhUoV53ZE7m3UPC2KjePHOeUKDBjt",
@@ -1871,6 +1873,7 @@
         "1wt7phDOOjgPTFs2TJHmmAIj60tm68iPt",
         "1X60TTF7agzbxC1bOH3b2VZVF1gPPTvms",
         "1Xe6cQ6FNp4Ef5A6qQDYY0IfgrdoPO9TK",
+        "1xl-TEL3smjn2qARgr0pmkktLQ8kW28i8",
         "1xmgdIxiP_jYSKOBXhQ3bYVt47-Nq9MdI",
         "1xNMSHDjexX-GqrzBzGSJ3l3EwWZqz8UR",
         "1XoOFRCUk95vJfkmj0PlUef7k5w_qEwQf",
@@ -1970,6 +1973,7 @@
         "1_DP6vl3ijivj9_iWYAIjWMuIhb3FV5tF",
         "1_FS7j8fS_swut1now5dPeeWlcmqx0A6O",
         "1_HSAn2Ab88NZ9Xy1pKFvfPIQB0Wj7lHC",
+        "1_hZvfx8mZBDhl2B93GbFXtg1M_unD1i6",
         "1_JsrUcIgN0ul2Ue-hfRNokpQgbadMHZv",
         "1_l24xYDq_ceYUQJFwksilzK0M3hHaJIO",
         "1_MUyAshYWJE3_jpy86p9QI2qgc87AeiH",
@@ -2476,6 +2480,7 @@
         "1pcMdg8VBIFxYrUj47uJtTM9wvALXipsC",
         "1PFiqBvW6_lv-EwJknZSJ9uWwSjo6Gkn0",
         "1pgsbb1AMM1wNAkYdiSWVL3GaPso7IDp_",
+        "1Pi9KwXPlKacGjDt5dT5w88el4IFcC0cx",
         "1pKcNBlIPOQMDzE3p9JuThkG0d8fN6JGm",
         "1Pm43LuvA_xw8B2IFK-fYs920_HhjAV8o",
         "1pMLvEX-wwC4FNXMAFcx75Mr67XZCyb1I",
@@ -2718,6 +2723,7 @@
         "1xh9beEDZvw5-HcOyYyx4NuPCy6TJBeqI",
         "1xiR_gbOvx2s3MDwXzC5pt5dl58NiMVEy",
         "1xJMMebxKcFEhXIxiQYk4Zy-aAhbFLpsZ",
+        "1xl-TEL3smjn2qARgr0pmkktLQ8kW28i8",
         "1xmgdIxiP_jYSKOBXhQ3bYVt47-Nq9MdI",
         "1xNgaPRIaURBpOItNx018O4xtrwOzvIOy",
         "1XnjFKfLx7e7BMzoDMqXYdOsgO6MMiMmb",
@@ -39711,6 +39717,68 @@
           "title": "Pink Feathers in White Snow"
         }
       ]
+    },
+    {
+      "id": "1Pi9KwXPlKacGjDt5dT5w88el4IFcC0cx",
+      "title": "97 12 Jokes for Big Kids(Y)",
+      "kind": "archive",
+      "archiveFormat": "zip",
+      "driveUrl": "https://drive.google.com/open?id=1Pi9KwXPlKacGjDt5dT5w88el4IFcC0cx",
+      "path": "MYO Collection/Content with Icons & Cover Images/97 12 Jokes for Big Kids(Y).zip",
+      "pathSegments": [
+        {
+          "id": "12ueGfirgSd21B7ShXZiATmrZCl3J4OqI",
+          "name": "MYO Collection"
+        },
+        {
+          "id": "12OAiquT8_TeOAslYKufVf1H3W1As6fcH",
+          "name": "Content with Icons & Cover Images"
+        },
+        {
+          "id": "1Pi9KwXPlKacGjDt5dT5w88el4IFcC0cx",
+          "name": "97 12 Jokes for Big Kids(Y).zip"
+        }
+      ],
+      "depth": 2,
+      "parentId": "12OAiquT8_TeOAslYKufVf1H3W1As6fcH",
+      "parentCollectionId": "12OAiquT8_TeOAslYKufVf1H3W1As6fcH",
+      "nestedAlbumIds": [],
+      "size": 18036599,
+      "modifiedTime": "2025-12-19T07:38:59.286Z",
+      "checksum": null,
+      "cover": null,
+      "tracks": []
+    },
+    {
+      "id": "1xl-TEL3smjn2qARgr0pmkktLQ8kW28i8",
+      "title": "97 12 Jokes for Kids.(Y)zip",
+      "kind": "archive",
+      "archiveFormat": "zip",
+      "driveUrl": "https://drive.google.com/open?id=1xl-TEL3smjn2qARgr0pmkktLQ8kW28i8",
+      "path": "MYO Collection/Content with Icons & Cover Images/97 12 Jokes for Kids.(Y)zip.zip",
+      "pathSegments": [
+        {
+          "id": "12ueGfirgSd21B7ShXZiATmrZCl3J4OqI",
+          "name": "MYO Collection"
+        },
+        {
+          "id": "12OAiquT8_TeOAslYKufVf1H3W1As6fcH",
+          "name": "Content with Icons & Cover Images"
+        },
+        {
+          "id": "1xl-TEL3smjn2qARgr0pmkktLQ8kW28i8",
+          "name": "97 12 Jokes for Kids.(Y)zip.zip"
+        }
+      ],
+      "depth": 2,
+      "parentId": "12OAiquT8_TeOAslYKufVf1H3W1As6fcH",
+      "parentCollectionId": "12OAiquT8_TeOAslYKufVf1H3W1As6fcH",
+      "nestedAlbumIds": [],
+      "size": 17813342,
+      "modifiedTime": "2025-12-19T07:39:06.466Z",
+      "checksum": null,
+      "cover": null,
+      "tracks": []
     },
     {
       "id": "142mVGUFaQIFo-OcRWNzDxcoumAvtGj_2",
@@ -93057,6 +93125,37 @@
           "title": "Positive Self-Talk"
         }
       ]
+    },
+    {
+      "id": "1_hZvfx8mZBDhl2B93GbFXtg1M_unD1i6",
+      "title": "Sesame Street Jokes (Y)",
+      "kind": "archive",
+      "archiveFormat": "zip",
+      "driveUrl": "https://drive.google.com/open?id=1_hZvfx8mZBDhl2B93GbFXtg1M_unD1i6",
+      "path": "MYO Collection/Content with Icons & Cover Images/Sesame Street Jokes (Y).zip",
+      "pathSegments": [
+        {
+          "id": "12ueGfirgSd21B7ShXZiATmrZCl3J4OqI",
+          "name": "MYO Collection"
+        },
+        {
+          "id": "12OAiquT8_TeOAslYKufVf1H3W1As6fcH",
+          "name": "Content with Icons & Cover Images"
+        },
+        {
+          "id": "1_hZvfx8mZBDhl2B93GbFXtg1M_unD1i6",
+          "name": "Sesame Street Jokes (Y).zip"
+        }
+      ],
+      "depth": 2,
+      "parentId": "12OAiquT8_TeOAslYKufVf1H3W1As6fcH",
+      "parentCollectionId": "12OAiquT8_TeOAslYKufVf1H3W1As6fcH",
+      "nestedAlbumIds": [],
+      "size": 9289326,
+      "modifiedTime": "2026-01-23T03:27:21.815Z",
+      "checksum": null,
+      "cover": null,
+      "tracks": []
     },
     {
       "id": "1redxCwdWmLKHskurIChz30774GUjwjea",

@@ -13,9 +13,12 @@ Search only Drive root `12ueGfirgSd21B7ShXZiATmrZCl3J4OqI`. Never search another
 npm ci
 npm run build
 brew install p7zip
+brew install ffmpeg
 ```
 
-SQLite 3 is required. ZIP uses the platform unzip tool; `.7z` requires `7zz` or `7z`.
+SQLite 3 and `ffprobe` are required. ZIP uses the platform unzip tool; `.7z`
+requires `7zz` or `7z`. Run the built `dist/cli.js` with Node 22 when `tsx`
+cannot create its local IPC socket.
 
 ## Index workflow
 
@@ -33,13 +36,31 @@ Before each search, incrementally scan known parents. Do not assume the
 requested `top_k` is the connector's effective response cap: large folder
 listings can be truncated below it without an explicit partial-result flag.
 Preserve the previous complete snapshot as a comparison baseline. For any
-direct listing at or above 100 entries, supplement it with folder-only parent
-queries split into non-overlapping modified-time windows until every window is
-below the observed response cap, then union the results by Drive ID. Compare
-the new snapshot with the baseline before export and report additions and
-removals; never silently discard previous entries. Record incomplete windows
-and do not call the scan complete while any remain. Revalidate the chosen
-Drive ID, parents, size, modified time, and checksum live before download.
+direct listing at or above 100 entries, supplement it with parent-scoped
+queries for **all child types**, split into contiguous, non-overlapping
+modified-time windows until every window is below the observed response cap.
+Folder-only windows are never proof of a complete parent scan because they
+omit direct archives and other files. Union results by Drive ID and compare ID
+sets, not only counts. If the connector cannot return every child type for a
+window, record it as incomplete and do not replace the snapshot or public
+cache. Preserve baseline entries while incomplete, but never treat the
+baseline as proof that no older files are missing.
+
+Save capped parent results as a scan manifest and validate the window coverage
+before merging:
+
+```bash
+npm run catalogue -- scan merge \
+  --input /tmp/parent-scan.json \
+  --output /tmp/parent-items.json \
+  --json
+```
+
+Use `requiredScope: "all-children"` for a complete refresh. A deliberately
+targeted archive-only repair may use `requiredScope: "archives"`, but its
+result must not mark the parent or overall snapshot complete. Revalidate the
+chosen Drive ID, parents, size, modified time, and checksum live before
+download.
 
 To discard the cache:
 
@@ -110,6 +131,11 @@ Tell the user the candidate names, types, and sizes when available. If there is 
 
 Do not silently choose the first child or ignore sibling archives/folders. Do not download or package candidates until the user chooses. If the user's request already explicitly names a subset or says to use all items, honor that choice without asking again, but still report every discovered candidate and any excluded non-playlist content.
 
+For a large sibling folder, write the complete candidate listing to a local
+report and summarize it in the response. If the connector reaches its response
+cap, use the index workflow's non-overlapping modified-time windows before
+calling the sibling scan complete.
+
 ## Package discovery
 
 Download the selected folder or archive into temporary storage only after live validation. Support expanded folders, `.zip`, and `.7z`. Validate archive entry paths before extraction and enforce 10,000 files and 2 GiB uncompressed limits.
@@ -123,6 +149,17 @@ Discover recursively:
 - Normalize leading zeros and exclude the selected cover from icons.
 - Reject duplicate track positions and same-precedence icon conflicts.
 - Derive missing icons from the cover with deterministic 16×16 center-crop/RGBA conversion. Generate a neutral cover when absent.
+
+Treat an obvious letter/number filename typo such as `1o.` for `10.` as a
+duplicate-position error first. Keep Drive unchanged. When the user's exact
+selection is already clear, normalize only the temporary local filename,
+record the original and normalized names in the consolidated preview, and
+otherwise ask before continuing.
+
+Connected Drive downloads may return short-lived signed attachment URLs.
+Consume them immediately without printing them, placing them in prompts, or
+persisting them. Use bounded concurrency, preserve relative filenames, and
+verify downloaded byte sizes against live Drive metadata before packaging.
 
 Build the portable package:
 

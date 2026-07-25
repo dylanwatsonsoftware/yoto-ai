@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { homedir, platform } from "node:os";
 import { join } from "node:path";
 import { CatalogueIndex, type CatalogueItem } from "./index.js";
@@ -11,6 +11,7 @@ import {
   buildPublicCatalogue,
   type DriveSnapshotItem
 } from "./cache.js";
+import { mergeParentScan, type ParentScan } from "./scan.js";
 
 function value(args: string[], name: string): string {
   const index = args.indexOf(name);
@@ -72,6 +73,14 @@ async function main(): Promise<unknown> {
   if (args[0] === "search") {
     const query = args.slice(1).filter((item) => !item.startsWith("--")).join(" ");
     return { results: await index.search(query) };
+  }
+  if (args[0] === "scan" && args[1] === "merge") {
+    const scan = JSON.parse(
+      await readFile(value(args, "--input"), "utf8")
+    ) as ParentScan;
+    const items = mergeParentScan(scan);
+    await writeFile(value(args, "--output"), `${JSON.stringify(items, null, 2)}\n`);
+    return { parentId: scan.parentId, scope: scan.requiredScope, items: items.length };
   }
   if (args[0] === "package" && args[1] === "build") {
     const sourceId = value(args, "--source-id");
