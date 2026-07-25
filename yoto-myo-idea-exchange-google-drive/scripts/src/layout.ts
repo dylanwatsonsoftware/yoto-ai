@@ -45,7 +45,9 @@ function iconCandidate(path: string):
   const name = basename(path, extension);
   const explicit = name.match(/^icon\s*0*(\d+)$/i);
   if (explicit) return { position: Number(explicit[1]), rank: 0 };
-  const numeric = name.match(/^0*(\d+)$/);
+  const numeric =
+    name.match(/^0*(\d+)$/) ??
+    name.match(/^image\s*0*(\d+)(?:\D|$)/i);
   if (!numeric) return undefined;
   const normalized = path.replaceAll("\\", "/").toLowerCase();
   return {

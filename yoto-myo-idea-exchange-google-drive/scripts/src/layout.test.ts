@@ -42,6 +42,20 @@ describe("MYO Idea Exchange playlist discovery", () => {
     ]);
   });
 
+  it("discovers chapter icons named with an Image prefix", () => {
+    const layout = discoverPlaylistLayout([
+      "Track 1 Chapter 1.m4a",
+      "Track 2 Chapter 2.m4a",
+      "Image 1 Chapter 1.png",
+      "Image 2 Chapter 2.png"
+    ]);
+
+    expect(layout.tracks.map((track) => track.icon)).toEqual([
+      "Image 1 Chapter 1.png",
+      "Image 2 Chapter 2.png"
+    ]);
+  });
+
   it("rejects ambiguous icon positions", () => {
     expect(() =>
       discoverPlaylistLayout([

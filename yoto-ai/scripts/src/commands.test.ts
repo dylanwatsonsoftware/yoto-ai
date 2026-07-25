@@ -86,7 +86,7 @@ describe("executeCommand", () => {
     ).rejects.toBeInstanceOf(UnsupportedOperationError);
   });
 
-  it("passes confirmation through a protected file without returning the token", async () => {
+  it("applies an explicitly confirmed preview without a shared secret", async () => {
     const preview = {
       version: 1 as const,
       operation: "create" as const,
@@ -107,18 +107,12 @@ describe("executeCommand", () => {
       duplicates: [],
       confirmationsRequired: 1 as const
     };
-    let confirmation = "";
     const mutateCard = vi.fn(async () => ({ cardId: "new-card" }));
     const dependencies = {
       auth,
       service,
-      readFile: async (path: string) =>
-        path === "preview.json" ? JSON.stringify(preview) : confirmation,
-      writeConfirmationFile: async (_path: string, value: string) => {
-        confirmation = value;
-      },
+      readFile: async () => JSON.stringify(preview),
       tokenStore: new MemoryTokenStore(),
-      confirmationSecret: "secret",
       writeApi: {
         uploadAudio: vi.fn(),
         uploadCover: vi.fn(async () => ({ mediaUrl: "cover" })),
@@ -127,35 +121,8 @@ describe("executeCommand", () => {
       }
     };
 
-    const result = await executeCommand(
-      [
-        "playlist",
-        "confirm",
-        "--preview",
-        "preview.json",
-        "--confirmation-file",
-        "confirmation.json"
-      ],
-      dependencies
-    );
-
-    expect(result).toEqual({
-      confirmed: true,
-      confirmationFile: "confirmation.json",
-      expiresInSeconds: 900
-    });
-    expect(JSON.stringify(result)).not.toContain(confirmation);
-    expect(confirmation).not.toBe("");
-
     await executeCommand(
-      [
-        "playlist",
-        "apply",
-        "--preview",
-        "preview.json",
-        "--confirmation-file",
-        "confirmation.json"
-      ],
+      ["playlist", "apply", "--preview", "preview.json"],
       dependencies
     );
     expect(mutateCard).toHaveBeenCalledOnce();

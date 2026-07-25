@@ -11,10 +11,20 @@ Use the bundled TypeScript CLI as the deterministic boundary for Yoto authentica
 
 1. Require Node.js 22 or later.
 2. Run `npm ci` in this skill directory when dependencies are absent.
+   After installing, verify that `keytar` loads under the same Node executable
+   and architecture that will run the CLI. If its native binary architecture
+   is incompatible, run `npm rebuild keytar --build-from-source`, verify it
+   again, and then run `auth status`.
 3. Ask the user to create a **public client** at `https://dashboard.yoto.dev/` and register `http://127.0.0.1:8787/callback`.
 4. Require `YOTO_CLIENT_ID`; allow `YOTO_REDIRECT_URI` only when it exactly matches a registered loopback callback. The CLI automatically loads an ignored `.env` file from this directory when present.
 5. Never request or use a client secret.
 6. For publishing, require `YOTO_CONFIRMATION_SECRET` from the environment or ignored `.env` file. Never put its value in a command.
+
+Before preparing a confirmed write, preflight Node/keytar, authentication, the
+current CLI command contract, and every package dependency. Do not reinstall
+dependencies or rebuild the CLI in the middle of a confirmed batch unless a
+pre-mutation failure requires it; re-read the current command help or source
+after any rebuild.
 
 Run commands from this skill directory:
 
@@ -55,6 +65,14 @@ Use JSON mode for orchestration. Never include command output containing persona
    not a completed upload.
 9. Refuse deletion, player commands, settings changes, TTS, and streaming.
 
+For a multi-package operation, keep one immutable preview and one private
+confirmation file per package. The user's single confirmation authorizes the
+whole displayed batch; do not ask again between packages. Apply packages
+sequentially so each final card mutation remains single-attempt. If the batch
+partially completes, report created card IDs, determine whether the failed
+package reached its final mutation, and resume only checkpointed media or an
+untouched preview. Never repeat a final mutation that was attempted.
+
 ## Authentication recovery
 
 Do not return a bare CLI error when authentication or configuration fails.
@@ -71,6 +89,11 @@ copy-pasteable commands over prose whenever a command exists:
   verify the exact callback and scopes, then use `auth logout` followed by
   `auth login` when a stale or revoked session is likely.
 - Missing dependencies: run `npm ci` in this skill directory, then retry.
+- A `keytar` load error that reports incompatible `x86_64`/`arm64`
+  architecture: rebuild `keytar` from source with the active Node 22 runtime,
+  verify `import("keytar")`, then retry `auth status`. A one-off API error
+  immediately after the rebuild may be retried once after the module-load
+  check.
 
 Never ask the user to paste a client secret, access token, refresh token, or
 authorization code. Stop after providing setup steps when the next action
@@ -92,10 +115,17 @@ restart the agent with a new environment variable.
   covers to `metadata.cover.imageL`.
 - Surface Yoto's response body when the final card mutation fails.
 - Treat child-related names, emails, listening activity, and content as sensitive.
+- Filter `library list` output inside the local process to only the titles,
+  card IDs, and match scores needed for duplicate checks; do not emit the
+  unfiltered library response into a model prompt or log.
 - Require HTTPS for remote track URLs.
 - Require provenance and permission for every playlist draft.
 - Upload icons only after local 16×16 RGBA validation and use `autoConvert=false`.
 - Preserve all existing card content and metadata when appending.
 - Never create a playlist until the authenticated library duplicate check
   returns no exact or similar title candidates.
+- Treat a successful `playlist apply` response containing the new card ID as
+  authoritative completion. A later read-back failure does not invalidate the
+  completed mutation; retry the read once and report the apply result if the
+  read remains unavailable.
 - Read [references/contracts.md](references/contracts.md) when interpreting scopes, errors, or playlist requirements.
