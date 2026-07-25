@@ -3,7 +3,6 @@ import { validatePlaylistDraft } from "./playlist.js";
 import { inspectPlaylistPackage } from "./package-contract.js";
 import {
   applyPreview,
-  createConfirmationToken,
   findSimilarPlaylists,
   previewCreate,
   type PublishPreview,
@@ -22,10 +21,8 @@ interface CommandDependencies {
   auth: AuthCommands;
   service: YotoService;
   readFile(path: string): Promise<string>;
-  writeConfirmationFile?(path: string, token: string): Promise<void>;
   tokenStore: TokenStore;
   writeApi?: YotoWriteApi;
-  confirmationSecret?: string;
   checkpoint?: UploadCheckpoint;
 }
 
@@ -118,46 +115,15 @@ export async function executeCommand(
       metadata: card
     });
   }
-  if (group === "playlist" && action === "confirm") {
-    if (!dependencies.confirmationSecret) {
-      throw new UsageError("YOTO_CONFIRMATION_SECRET is required");
-    }
-    if (!dependencies.writeConfirmationFile) {
-      throw new UnsupportedOperationError(
-        "Secure confirmation file output is unavailable"
-      );
-    }
-    const preview = JSON.parse(
-      await dependencies.readFile(optionValue(args, "--preview"))
-    ) as PublishPreview;
-    const confirmationFile = optionValue(args, "--confirmation-file");
-    await dependencies.writeConfirmationFile(
-      confirmationFile,
-      createConfirmationToken(preview, dependencies.confirmationSecret)
-    );
-    return {
-      confirmed: true,
-      confirmationFile,
-      expiresInSeconds: 15 * 60
-    };
-  }
   if (group === "playlist" && action === "apply") {
-    if (!dependencies.confirmationSecret) {
-      throw new UsageError("YOTO_CONFIRMATION_SECRET is required");
-    }
     if (!dependencies.writeApi) {
       throw new UnsupportedOperationError("Yoto publishing adapter is unavailable");
     }
     const preview = JSON.parse(
       await dependencies.readFile(optionValue(args, "--preview"))
     ) as PublishPreview;
-    const confirmationToken = (
-      await dependencies.readFile(optionValue(args, "--confirmation-file"))
-    ).trim();
     return applyPreview(
       preview,
-      confirmationToken,
-      dependencies.confirmationSecret,
       dependencies.writeApi,
       dependencies.checkpoint
     );

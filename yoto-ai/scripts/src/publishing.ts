@@ -1,8 +1,3 @@
-import {
-  createHash,
-  createHmac,
-  timingSafeEqual
-} from "node:crypto";
 import type { PlaylistPackage } from "./package-contract.js";
 
 export interface ExistingTrack {
@@ -125,49 +120,6 @@ export function previewCreate(
   };
 }
 
-function previewDigest(preview: PublishPreview): string {
-  return createHash("sha256").update(JSON.stringify(preview)).digest("base64url");
-}
-
-export function createConfirmationToken(
-  preview: PublishPreview,
-  secret: string,
-  now = Date.now()
-): string {
-  const body = Buffer.from(
-    JSON.stringify({
-      digest: previewDigest(preview),
-      expiresAt: now + 15 * 60_000
-    })
-  ).toString("base64url");
-  const signature = createHmac("sha256", secret).update(body).digest("base64url");
-  return `${body}.${signature}`;
-}
-
-function verifyConfirmation(
-  preview: PublishPreview,
-  token: string,
-  secret: string,
-  now = Date.now()
-): void {
-  const [body, signature] = token.split(".");
-  if (!body || !signature) throw new Error("Invalid confirmation token");
-  const expected = createHmac("sha256", secret).update(body).digest("base64url");
-  const a = Buffer.from(signature);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length || !timingSafeEqual(a, b)) {
-    throw new Error("Invalid confirmation token");
-  }
-  const payload = JSON.parse(Buffer.from(body, "base64url").toString()) as {
-    digest: string;
-    expiresAt: number;
-  };
-  if (payload.expiresAt < now) throw new Error("Confirmation token expired");
-  if (payload.digest !== previewDigest(preview)) {
-    throw new Error("Confirmation does not match preview");
-  }
-}
-
 export interface YotoWriteApi {
   uploadAudio(
     track: PlaylistPackage["tracks"][number],
@@ -193,12 +145,9 @@ export interface UploadCheckpoint {
 
 export async function applyPreview(
   preview: PublishPreview,
-  token: string,
-  secret: string,
   api: YotoWriteApi,
   checkpoint?: UploadCheckpoint
 ): Promise<unknown> {
-  verifyConfirmation(preview, token, secret);
   const root = preview.packageDirectory;
   const audio = [];
   const icons: Array<unknown | null> = [];

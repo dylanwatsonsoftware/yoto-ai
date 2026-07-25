@@ -16,8 +16,7 @@ import {
   loadLocalEnvironmentFile,
   parseCliArguments,
   renderHuman,
-  requiresClientId,
-  writePrivateFile
+  requiresClientId
 } from "./cli-support.js";
 import { failureEnvelope, redact, successEnvelope } from "./output.js";
 import { YotoService } from "./yoto-service.js";
@@ -154,12 +153,8 @@ if (!clientId && requiresClientId(args)) {
         auth,
         service: new YotoService(sdk),
         readFile: (path) => readFile(path, "utf8"),
-        writeConfirmationFile: async (path, token) => {
-          await writePrivateFile(path, `${token}\n`);
-        },
         tokenStore: store,
         writeApi,
-        confirmationSecret: process.env.YOTO_CONFIRMATION_SECRET,
         checkpoint: new JsonUploadCheckpoint(
           join(
             process.env.XDG_CACHE_HOME ||

@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   applyPreview,
-  createConfirmationToken,
   findSimilarPlaylists,
   previewCreate
 } from "./publishing.js";
@@ -70,7 +69,7 @@ describe("Yoto publishing", () => {
     ]);
   });
 
-  it("uploads every asset only after one confirmation and mutates once", async () => {
+  it("uploads every asset and mutates once when a preview is applied", async () => {
     const preview = previewCreate("/package", packageManifest);
     const api = {
       uploadAudio: vi.fn(async (track: unknown) => ({ mediaId: String(track) })),
@@ -79,13 +78,7 @@ describe("Yoto publishing", () => {
       mutateCard: vi.fn(async () => ({ cardId: "new-card" }))
     };
 
-    await expect(
-      applyPreview(preview, "bad", "secret", api)
-    ).rejects.toThrow();
-    expect(api.uploadAudio).not.toHaveBeenCalled();
-
-    const token = createConfirmationToken(preview, "secret");
-    await applyPreview(preview, token, "secret", api);
+    await applyPreview(preview, api);
     expect(api.uploadAudio).toHaveBeenCalledTimes(2);
     expect(api.uploadIcon).toHaveBeenCalledTimes(2);
     expect(api.uploadCover).toHaveBeenCalledTimes(1);
@@ -137,10 +130,8 @@ describe("Yoto publishing", () => {
         throw new Error("final mutation failed");
       })
     };
-    const token = createConfirmationToken(preview, "secret");
-
     await expect(
-      applyPreview(preview, token, "secret", api, checkpoint)
+      applyPreview(preview, api, checkpoint)
     ).rejects.toThrow("final mutation failed");
     expect(api.uploadAudio).toHaveBeenCalledTimes(2);
     expect(api.uploadAudio).toHaveBeenCalledWith(

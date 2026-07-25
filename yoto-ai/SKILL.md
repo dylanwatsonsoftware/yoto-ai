@@ -18,8 +18,6 @@ Use the bundled TypeScript CLI as the deterministic boundary for Yoto authentica
 3. Ask the user to create a **public client** at `https://dashboard.yoto.dev/` and register `http://127.0.0.1:8787/callback`.
 4. Require `YOTO_CLIENT_ID`; allow `YOTO_REDIRECT_URI` only when it exactly matches a registered loopback callback. The CLI automatically loads an ignored `.env` file from this directory when present.
 5. Never request or use a client secret.
-6. For publishing, require `YOTO_CONFIRMATION_SECRET` from the environment or ignored `.env` file. Never put its value in a command.
-
 Before preparing a confirmed write, preflight Node/keytar, authentication, the
 current CLI command contract, and every package dependency. Do not reinstall
 dependencies or rebuild the CLI in the middle of a confirmed batch unless a
@@ -47,8 +45,7 @@ Use JSON mode for orchestration. Never include command output containing persona
    - `playlist inspect-package --input <dir> --json`
    - `playlist preview-create --input <dir> --output <preview-file> --json`
    - `playlist preview-append --input <dir> --card-id <id> --output <preview-file> --json`
-   - `playlist confirm --preview <file> --confirmation-file <file> --json`
-   - `playlist apply --preview <file> --confirmation-file <file> --json`
+   - `playlist apply --preview <file> --json`
 3. Validate every package and generate a preview before any upload. Before
    every create preview, search the live Yoto library for exact and similar
    normalized titles.
@@ -57,17 +54,16 @@ Use JSON mode for orchestration. Never include command output containing persona
    after the user chooses that card; otherwise require a distinct title.
 5. For append-by-name requests, run `library list`, require exactly one exact title match, show its card ID, then preview with that ID. Reject zero or multiple exact matches.
 6. Show one consolidated preview containing every audio, cover, icon, duplicate decision, and final card change. Ask exactly one confirmation.
-7. Only after explicit confirmation, run `playlist confirm` with a private
-   confirmation-file path, then pass that file path to `playlist apply`. Never
-   print, copy, return, or place the token itself in command arguments.
+7. Only after explicit confirmation, run `playlist apply` with the exact
+   immutable preview file that was shown to the user.
 8. Let `playlist apply` resume any checkpointed upload IDs and poll until Yoto
    returns `transcodedSha256` and `transcodedInfo`. A transcode-start response is
    not a completed upload.
 9. Refuse deletion, player commands, settings changes, TTS, and streaming.
 
-For a multi-package operation, keep one immutable preview and one private
-confirmation file per package. The user's single confirmation authorizes the
-whole displayed batch; do not ask again between packages. Apply packages
+For a multi-package operation, keep one immutable preview per package. The
+user's single confirmation authorizes the whole displayed batch; do not ask
+again between packages. Apply packages
 sequentially so each final card mutation remains single-attempt. If the batch
 partially completes, report created card IDs, determine whether the failed
 package reached its final mutation, and resume only checkpointed media or an
@@ -103,8 +99,6 @@ restart the agent with a new environment variable.
 ## Guardrails
 
 - Never print, store in files, or send access or refresh tokens to an LLM.
-- Store confirmation tokens only in CLI-created mode-`0600` files; never put
-  them in command arguments, output, prompts, or logs.
 - Keep refresh tokens only in the operating-system keychain.
 - Never retry the final card mutation automatically. Media uploads may resume
   by checksum and pending upload ID, but inspect the preview and checkpoint

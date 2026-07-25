@@ -86,9 +86,8 @@ Copy the ignored environment template and populate it locally:
 cp .env.example .env
 ```
 
-Set `YOTO_CLIENT_ID` to your public client ID and
-`YOTO_CONFIRMATION_SECRET` to a random per-session value. The CLI automatically
-loads this file. It must remain untracked.
+Set `YOTO_CLIENT_ID` to your public client ID. The CLI automatically loads this
+file. It must remain untracked.
 
 The default callback is `http://127.0.0.1:8787/callback`.
 `YOTO_REDIRECT_URI` is only needed for a different registered loopback URL.
@@ -177,16 +176,9 @@ npm run yoto -- playlist preview-create --input /path/to/package \
 Save a preview JSON, show it to the user, and only after they confirm:
 
 ```bash
-npm run yoto -- playlist confirm --preview /tmp/yoto-preview.json \
-  --confirmation-file /tmp/yoto-confirmation \
-  --json
 npm run yoto -- playlist apply --preview /tmp/yoto-preview.json \
-  --confirmation-file /tmp/yoto-confirmation \
   --json
 ```
-
-The confirmation file is created with mode `0600`. Its short-lived token is
-never printed or placed in process arguments.
 
 Development checks:
 
