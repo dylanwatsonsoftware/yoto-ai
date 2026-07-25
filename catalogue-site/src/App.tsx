@@ -474,8 +474,8 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
       <main>
         {!catalogue.scan.complete && (
           <p className="notice" role="status">
-            This catalogue is a starter snapshot. Run the Drive skill refresh
-            to publish the complete collection.
+            The latest Drive scan could not confirm that the cached collection
+            is complete.
           </p>
         )}
         <section

@@ -284,6 +284,22 @@ describe("catalogue app", () => {
     expect(await screen.findByText(/no playlists match/i)).toBeInTheDocument();
   });
 
+  it("describes an uncertified cached catalogue without calling it a starter", () => {
+    render(
+      <App
+        catalogue={{
+          ...catalogue,
+          scan: { complete: false }
+        }}
+      />
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "The latest Drive scan could not confirm that the cached collection is complete."
+    );
+    expect(screen.getByRole("status")).not.toHaveTextContent("starter snapshot");
+  });
+
   it("uses playlist terminology throughout the user interface", () => {
     render(<App catalogue={catalogue} />);
 
