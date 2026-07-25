@@ -128,6 +128,83 @@ describe("catalogue app", () => {
     expect(window.location.search).toContain("kind=archive");
   });
 
+  it("offers known collection shortcuts that run catalogue searches", async () => {
+    const user = userEvent.setup();
+    render(<App catalogue={catalogue} />);
+    const shortcuts = screen.getByRole("navigation", {
+      name: "Known collections"
+    });
+    const names = [
+      "Audiobooks",
+      "BBC",
+      "BrainBots",
+      "Disney",
+      "5 Minute",
+      "Christmas",
+      "Easter",
+      "Halloween",
+      "Marvel",
+      "Hogwarts",
+      "Yoto Originals",
+      "Yoto Collection",
+      "Yoto Classical",
+      "Soundscape",
+      "Tonies",
+      "Music"
+    ];
+
+    expect(
+      within(shortcuts)
+        .getAllByRole("button")
+        .filter((button) => button.hasAttribute("aria-pressed"))
+    ).toHaveLength(names.length);
+    for (const name of names) {
+      expect(
+        within(shortcuts).getByRole("button", { name })
+      ).toBeInTheDocument();
+    }
+
+    await user.click(within(shortcuts).getByRole("button", { name: "Disney" }));
+    expect(screen.getByRole("searchbox")).toHaveValue("Disney");
+    expect(
+      within(shortcuts).getByRole("button", { name: "Disney" })
+    ).toHaveAttribute("aria-pressed", "true");
+    await waitFor(() =>
+      expect(window.location.search).toContain("q=Disney")
+    );
+  });
+
+  it("adds and persists a custom known collection", async () => {
+    const user = userEvent.setup();
+    const firstRender = render(<App catalogue={catalogue} />);
+    const shortcuts = screen.getByRole("navigation", {
+      name: "Known collections"
+    });
+
+    await user.type(
+      within(shortcuts).getByRole("textbox", {
+        name: "New known collection"
+      }),
+      "Paddington"
+    );
+    await user.click(
+      within(shortcuts).getByRole("button", { name: "Add collection" })
+    );
+
+    expect(
+      within(shortcuts).getByRole("button", { name: "Paddington" })
+    ).toBeInTheDocument();
+    expect(
+      window.localStorage.getItem("yoto-catalogue-known-collections")
+    ).toBe('["Paddington"]');
+
+    firstRender.unmount();
+    render(<App catalogue={catalogue} />);
+    expect(
+      screen.getByRole("button", { name: "Paddington" })
+    ).toBeInTheDocument();
+  });
+
   it("browses top-level folders before showing their playlists", async () => {
     const user = userEvent.setup();
     render(<App catalogue={catalogue} />);

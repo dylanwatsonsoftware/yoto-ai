@@ -257,6 +257,77 @@ main {
   font-size: 1.08rem;
 }
 
+.known-collections {
+  min-width: 0;
+  margin-top: 12px;
+}
+
+.known-collections__label {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.known-collections__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.known-collections button {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.known-collections button:hover {
+  color: var(--ink);
+  border-color: var(--purple);
+}
+
+.known-collections .known-collections__active {
+  color: #fff;
+  background: var(--purple);
+  border-color: var(--purple);
+}
+
+.known-collections__add {
+  display: flex;
+  gap: 7px;
+  max-width: 360px;
+  margin-top: 9px;
+}
+
+.known-collections__add label {
+  flex: 1 1 auto;
+}
+
+.known-collections__add input {
+  width: 100%;
+  padding: 7px 10px;
+  color: var(--ink);
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.78rem;
+}
+
+.known-collections__add button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 .discovery__toolbar {
   display: flex;
   align-items: center;
@@ -1054,6 +1125,19 @@ footer {
 
   .discovery {
     padding: 15px;
+  }
+
+  .known-collections__list {
+    flex-wrap: nowrap;
+    margin-inline: -15px;
+    padding: 0 15px 3px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: none;
+  }
+
+  .known-collections__list::-webkit-scrollbar {
+    display: none;
   }
 
   .view-switcher {
