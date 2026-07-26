@@ -16,7 +16,6 @@ import "./styles.css";
 const FAVOURITES_KEY = "yoto-catalogue-favourites";
 const THEME_KEY = "yoto-catalogue-theme";
 const LAYOUT_KEY = "yoto-catalogue-layout";
-const KNOWN_COLLECTIONS_KEY = "yoto-catalogue-known-collections";
 const SEARCH_DEBOUNCE_MS = 150;
 const RESULTS_BATCH_SIZE = 50;
 export const KNOWN_COLLECTIONS = [
@@ -59,19 +58,6 @@ function readFavourites(): string[] {
     const value = JSON.parse(window.localStorage.getItem(FAVOURITES_KEY) ?? "[]");
     return Array.isArray(value)
       ? value.filter((id): id is string => typeof id === "string")
-      : [];
-  } catch {
-    return [];
-  }
-}
-
-function readCustomKnownCollections(): string[] {
-  try {
-    const value = JSON.parse(
-      window.localStorage.getItem(KNOWN_COLLECTIONS_KEY) ?? "[]"
-    );
-    return Array.isArray(value)
-      ? value.filter((name): name is string => typeof name === "string")
       : [];
   } catch {
     return [];
@@ -324,9 +310,6 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
   const [searchInput, setSearchInput] = useState(state.query);
   const [resultLimit, setResultLimit] = useState(RESULTS_BATCH_SIZE);
   const [favourites, setFavourites] = useState<string[]>(readFavourites);
-  const [customKnownCollections, setCustomKnownCollections] =
-    useState<string[]>(readCustomKnownCollections);
-  const [newKnownCollection, setNewKnownCollection] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
   const [theme, setTheme] = useState<Theme>(() =>
@@ -497,40 +480,26 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
     navigate({ ...state, collection, selected: undefined });
 
   const searchKnownCollection = (query: string) => {
-    setSearchInput(query);
+    const active =
+      searchInput.trim().toLocaleLowerCase() === query.toLocaleLowerCase();
+    const nextQuery = active ? "" : query;
+    setSearchInput(nextQuery);
     navigate({
       ...state,
-      query,
+      query: nextQuery,
       collection: "all",
       view: undefined,
       selected: undefined
     });
   };
 
-  const addKnownCollection = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const name = newKnownCollection.trim();
-    if (!name) return;
-    const allKnownCollections = [
-      ...KNOWN_COLLECTIONS,
-      ...customKnownCollections
-    ];
-    if (
-      allKnownCollections.some(
-        (collection) =>
-          collection.toLocaleLowerCase() === name.toLocaleLowerCase()
-      )
-    ) {
-      setNewKnownCollection("");
-      return;
-    }
-    const next = [...customKnownCollections, name];
-    setCustomKnownCollections(next);
-    window.localStorage.setItem(
-      KNOWN_COLLECTIONS_KEY,
-      JSON.stringify(next)
-    );
-    setNewKnownCollection("");
+  const clearSearch = () => {
+    setSearchInput("");
+    navigate({
+      ...state,
+      query: "",
+      selected: undefined
+    });
   };
 
   return (
@@ -574,12 +543,24 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
         >
           <label className="search">
             <span>Search catalogue</span>
-            <input
-              type="search"
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="Title, folder, collection or track…"
-            />
+            <div className="search__field">
+              <input
+                type="search"
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder="Title, folder, collection or track…"
+              />
+              {searchInput && (
+                <button
+                  type="button"
+                  className="search__clear"
+                  aria-label="Clear search"
+                  onClick={clearSearch}
+                >
+                  <span aria-hidden="true">×</span>
+                </button>
+              )}
+            </div>
           </label>
           <nav
             className="known-collections"
@@ -587,7 +568,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
           >
             <span className="known-collections__label">Known collections</span>
             <div className="known-collections__list">
-              {[...KNOWN_COLLECTIONS, ...customKnownCollections].map((collection) => {
+              {KNOWN_COLLECTIONS.map((collection) => {
                 const active =
                   searchInput.trim().toLocaleLowerCase() ===
                   collection.toLocaleLowerCase();
@@ -604,25 +585,6 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
                 );
               })}
             </div>
-            <form
-              className="known-collections__add"
-              onSubmit={addKnownCollection}
-            >
-              <label>
-                <input
-                  type="text"
-                  aria-label="New known collection"
-                  value={newKnownCollection}
-                  placeholder="Add a collection…"
-                  onChange={(event) =>
-                    setNewKnownCollection(event.target.value)
-                  }
-                />
-              </label>
-              <button type="submit" disabled={!newKnownCollection.trim()}>
-                Add collection
-              </button>
-            </form>
           </nav>
           <div className="discovery__toolbar">
             <div className="view-switcher" aria-label="Catalogue view">

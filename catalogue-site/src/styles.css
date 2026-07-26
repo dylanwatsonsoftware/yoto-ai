@@ -236,7 +236,7 @@ main {
   border-color: var(--purple);
 }
 
-.search span,
+.search > span,
 .filters label span {
   display: block;
   margin-bottom: 7px;
@@ -249,12 +249,45 @@ main {
 
 .search input {
   width: 100%;
-  padding: 15px 17px;
+  padding: 15px 52px 15px 17px;
   color: var(--ink);
   background: var(--field);
   border: 1px solid var(--line);
   border-radius: 12px;
   font-size: 1.08rem;
+}
+
+.search__field {
+  position: relative;
+}
+
+.search input::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+.search__clear {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: var(--muted);
+  background: var(--subtle);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  font: inherit;
+  font-size: 1.35rem;
+  line-height: 1;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.search__clear:hover {
+  color: var(--ink);
+  border-color: var(--purple);
 }
 
 .known-collections {
@@ -299,33 +332,6 @@ main {
   color: #fff;
   background: var(--purple);
   border-color: var(--purple);
-}
-
-.known-collections__add {
-  display: flex;
-  gap: 7px;
-  max-width: 360px;
-  margin-top: 9px;
-}
-
-.known-collections__add label {
-  flex: 1 1 auto;
-}
-
-.known-collections__add input {
-  width: 100%;
-  padding: 7px 10px;
-  color: var(--ink);
-  background: var(--field);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  font: inherit;
-  font-size: 0.78rem;
-}
-
-.known-collections__add button:disabled {
-  opacity: 0.45;
-  cursor: default;
 }
 
 .discovery__toolbar {

@@ -172,37 +172,36 @@ describe("catalogue app", () => {
     await waitFor(() =>
       expect(window.location.search).toContain("q=Disney")
     );
+
+    await user.click(
+      within(shortcuts).getByRole("button", { name: "Disney" })
+    );
+    expect(screen.getByRole("searchbox")).toHaveValue("");
+    expect(
+      within(shortcuts).getByRole("button", { name: "Disney" })
+    ).toHaveAttribute("aria-pressed", "false");
+    expect(window.location.search).not.toContain("q=");
   });
 
-  it("adds and persists a custom known collection", async () => {
+  it("keeps an explicit clear-search button visible whenever search has text", async () => {
     const user = userEvent.setup();
-    const firstRender = render(<App catalogue={catalogue} />);
-    const shortcuts = screen.getByRole("navigation", {
-      name: "Known collections"
-    });
-
-    await user.type(
-      within(shortcuts).getByRole("textbox", {
-        name: "New known collection"
-      }),
-      "Paddington"
-    );
-    await user.click(
-      within(shortcuts).getByRole("button", { name: "Add collection" })
-    );
-
-    expect(
-      within(shortcuts).getByRole("button", { name: "Paddington" })
-    ).toBeInTheDocument();
-    expect(
-      window.localStorage.getItem("yoto-catalogue-known-collections")
-    ).toBe('["Paddington"]');
-
-    firstRender.unmount();
     render(<App catalogue={catalogue} />);
+    const search = screen.getByRole("searchbox");
+
     expect(
-      screen.getByRole("button", { name: "Paddington" })
-    ).toBeInTheDocument();
+      screen.queryByRole("button", { name: "Clear search" })
+    ).not.toBeInTheDocument();
+    await user.type(search, "Ada");
+    await user.tab();
+
+    const clear = screen.getByRole("button", { name: "Clear search" });
+    expect(clear).toBeVisible();
+    await user.click(clear);
+
+    expect(search).toHaveValue("");
+    await waitFor(() =>
+      expect(window.location.search).not.toContain("q=")
+    );
   });
 
   it("browses top-level folders before showing their playlists", async () => {
