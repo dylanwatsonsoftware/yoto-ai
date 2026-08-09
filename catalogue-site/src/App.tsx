@@ -503,7 +503,11 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
   };
 
   return (
-    <div className="app-shell">
+    <div
+      className={`app-shell ${
+        searchInput.trim() ? "app-shell--searching" : ""
+      }`}
+    >
       <header className="hero">
         <button
           type="button"

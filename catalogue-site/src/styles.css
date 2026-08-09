@@ -1272,6 +1272,43 @@ footer {
   .detail h2 {
     padding-right: 62px;
   }
+
+  .app-shell--searching {
+    padding-top: 0;
+  }
+
+  .app-shell--searching .hero,
+  .app-shell--searching .notice,
+  .app-shell--searching .known-collections,
+  .app-shell--searching .discovery__toolbar,
+  .app-shell--searching .folder-breadcrumbs,
+  .app-shell--searching .results-actions,
+  .app-shell--searching .favourites-export,
+  .app-shell--searching footer {
+    display: none;
+  }
+
+  .app-shell--searching main {
+    padding-top: 0;
+  }
+
+  .app-shell--searching .discovery {
+    position: sticky !important;
+    z-index: 30;
+    top: 0;
+    margin-inline: -12px;
+    padding: 10px 12px 12px;
+    border-width: 0 0 1px;
+    border-radius: 0 0 16px 16px;
+  }
+
+  .app-shell--searching .search > span {
+    margin-bottom: 5px;
+  }
+
+  .app-shell--searching .results-heading {
+    margin-top: 14px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

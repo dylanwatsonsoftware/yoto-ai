@@ -204,6 +204,21 @@ describe("catalogue app", () => {
     );
   });
 
+  it("enters a focused search mode while the search query has text", async () => {
+    const user = userEvent.setup();
+    render(<App catalogue={catalogue} />);
+    const search = screen.getByRole("searchbox");
+    const shell = search.closest(".app-shell");
+
+    expect(shell).not.toHaveClass("app-shell--searching");
+
+    await user.type(search, "Ada");
+    expect(shell).toHaveClass("app-shell--searching");
+
+    await user.click(screen.getByRole("button", { name: "Clear search" }));
+    expect(shell).not.toHaveClass("app-shell--searching");
+  });
+
   it("browses top-level folders before showing their playlists", async () => {
     const user = userEvent.setup();
     render(<App catalogue={catalogue} />);
