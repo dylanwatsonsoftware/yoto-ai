@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { flushSync } from "react-dom";
 import {
   buildCatalogueSearchIndex,
   defaultFilters,
@@ -389,6 +390,29 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
     state.depth !== "all" ||
     state.includeOtherLanguages === true;
 
+  const setSearchWithTransition = (nextSearch: string) => {
+    const changesSearchMode =
+      Boolean(searchInput.trim()) !== Boolean(nextSearch.trim());
+    const smallScreen = window.matchMedia?.("(max-width: 680px)").matches;
+    const reducedMotion = window.matchMedia?.(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+
+    if (
+      changesSearchMode &&
+      smallScreen &&
+      !reducedMotion &&
+      typeof document.startViewTransition === "function"
+    ) {
+      document.startViewTransition(() => {
+        flushSync(() => setSearchInput(nextSearch));
+      });
+      return;
+    }
+
+    setSearchInput(nextSearch);
+  };
+
   useEffect(() => {
     const timeout = window.setTimeout(() => {
       setState((current) =>
@@ -483,7 +507,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
     const active =
       searchInput.trim().toLocaleLowerCase() === query.toLocaleLowerCase();
     const nextQuery = active ? "" : query;
-    setSearchInput(nextQuery);
+    setSearchWithTransition(nextQuery);
     navigate({
       ...state,
       query: nextQuery,
@@ -494,7 +518,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
   };
 
   const clearSearch = () => {
-    setSearchInput("");
+    setSearchWithTransition("");
     navigate({
       ...state,
       query: "",
@@ -551,7 +575,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
               <input
                 type="search"
                 value={searchInput}
-                onChange={(event) => setSearchInput(event.target.value)}
+                onChange={(event) => setSearchWithTransition(event.target.value)}
                 placeholder="Title, folder, collection or track…"
               />
               {searchInput && (

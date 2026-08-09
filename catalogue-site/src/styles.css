@@ -199,6 +199,7 @@ main {
 
 .discovery {
   position: relative;
+  view-transition-name: catalogue-search;
   padding: 16px;
   background: color-mix(in srgb, var(--paper) 90%, transparent);
   border: 1px solid rgba(221, 213, 200, 0.9);
@@ -1111,6 +1112,12 @@ footer {
 }
 
 @media (max-width: 680px) {
+  ::view-transition-group(root),
+  ::view-transition-group(catalogue-search) {
+    animation-duration: 280ms;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
   .app-shell {
     padding: 12px 12px 28px;
   }
@@ -1277,7 +1284,6 @@ footer {
     padding-top: 0;
   }
 
-  .app-shell--searching .hero,
   .app-shell--searching .notice,
   .app-shell--searching .known-collections,
   .app-shell--searching .discovery__toolbar,
@@ -1286,6 +1292,12 @@ footer {
   .app-shell--searching .favourites-export,
   .app-shell--searching footer {
     display: none;
+  }
+
+  .app-shell--searching .hero {
+    pointer-events: none;
+    animation: mobile-hero-collapse 280ms cubic-bezier(0.22, 1, 0.36, 1)
+      forwards;
   }
 
   .app-shell--searching main {
@@ -1309,9 +1321,35 @@ footer {
   .app-shell--searching .results-heading {
     margin-top: 14px;
   }
+
+  @keyframes mobile-hero-collapse {
+    from {
+      max-height: 220px;
+      opacity: 1;
+    }
+
+    to {
+      visibility: hidden;
+      max-height: 0;
+      min-height: 0;
+      padding-block: 0;
+      opacity: 0;
+      border-width: 0;
+      transform: translateY(-12px);
+    }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(root),
+  ::view-transition-group(catalogue-search) {
+    animation-duration: 1ms;
+  }
+
+  .app-shell--searching .hero {
+    animation-duration: 1ms;
+  }
+
   *,
   *::before,
   *::after {
