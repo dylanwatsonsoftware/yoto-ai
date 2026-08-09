@@ -291,6 +291,29 @@ describe("catalogue app", () => {
     expect(screen.getByRole("button", { name: "Open folder Science" })).toBeInTheDocument();
   });
 
+  it("restores the parent folder scroll position when navigating up", async () => {
+    const user = userEvent.setup();
+    let scrollPosition = 540;
+    Object.defineProperty(window, "scrollY", {
+      configurable: true,
+      get: () => scrollPosition
+    });
+    const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+    render(<App catalogue={catalogue} />);
+
+    await user.click(screen.getByRole("button", { name: "Open folder Science" }));
+    await waitFor(() => expect(scrollTo).toHaveBeenLastCalledWith(0, 0));
+
+    scrollPosition = 125;
+    await user.click(
+      screen.getByRole("button", { name: "Up to MYO Idea Exchange" })
+    );
+    await waitFor(() => expect(scrollTo).toHaveBeenLastCalledWith(0, 540));
+
+    scrollTo.mockRestore();
+    Reflect.deleteProperty(window, "scrollY");
+  });
+
   it("adds folder and playlist navigation to browser history", async () => {
     const user = userEvent.setup();
     const pushState = vi.spyOn(window.history, "pushState");

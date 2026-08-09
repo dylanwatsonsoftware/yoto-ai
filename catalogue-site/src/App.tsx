@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import {
   buildCatalogueSearchIndex,
@@ -319,6 +319,8 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
   const [layout, setLayout] = useState<Layout>(() =>
     window.localStorage.getItem(LAYOUT_KEY) === "gallery" ? "gallery" : "list"
   );
+  const folderScrollPositions = useRef(new Map<string, number>());
+  const pendingScrollFolder = useRef<string | null>(null);
   const showFavourites = state.view === "favourites";
   const favouriteIds = useMemo(() => new Set(favourites), [favourites]);
   const favouriteAlbums = useMemo(
@@ -443,6 +445,17 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
   ]);
 
   useEffect(() => {
+    if (pendingScrollFolder.current !== state.collection) return;
+
+    const scrollPosition = folderScrollPositions.current.get(state.collection) ?? 0;
+    pendingScrollFolder.current = null;
+    const frame = window.requestAnimationFrame(() => {
+      window.scrollTo(0, scrollPosition);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [state.collection]);
+
+  useEffect(() => {
     const query = writeCatalogueQuery(state);
     window.history.replaceState(
       null,
@@ -500,8 +513,11 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
     setState(next);
   };
 
-  const navigateToFolder = (collection: string) =>
+  const navigateToFolder = (collection: string) => {
+    folderScrollPositions.current.set(state.collection, window.scrollY);
+    pendingScrollFolder.current = collection;
     navigate({ ...state, collection, selected: undefined });
+  };
 
   const searchKnownCollection = (query: string) => {
     const active =
