@@ -1294,10 +1294,14 @@ footer {
     display: none;
   }
 
-  .app-shell--searching .hero {
+  .app-shell--searching:not(.app-shell--native-transitions) .hero {
     pointer-events: none;
     animation: mobile-hero-collapse 280ms cubic-bezier(0.22, 1, 0.36, 1)
       forwards;
+  }
+
+  .app-shell--searching.app-shell--native-transitions .hero {
+    display: none;
   }
 
   .app-shell--searching main {
@@ -1346,7 +1350,7 @@ footer {
     animation-duration: 1ms;
   }
 
-  .app-shell--searching .hero {
+  .app-shell--searching:not(.app-shell--native-transitions) .hero {
     animation-duration: 1ms;
   }
 

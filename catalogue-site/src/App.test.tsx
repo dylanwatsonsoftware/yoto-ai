@@ -237,6 +237,9 @@ describe("catalogue app", () => {
       value: matchMedia
     });
     render(<App catalogue={catalogue} />);
+    const shell = screen.getByRole("searchbox").closest(".app-shell");
+
+    expect(shell).toHaveClass("app-shell--native-transitions");
 
     await user.type(screen.getByRole("searchbox"), "Ada");
     expect(startViewTransition).toHaveBeenCalledTimes(1);

@@ -391,20 +391,19 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
     state.cover !== "all" ||
     state.depth !== "all" ||
     state.includeOtherLanguages === true;
+  const supportsNativeSearchTransitions =
+    typeof document.startViewTransition === "function" &&
+    !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
   const setSearchWithTransition = (nextSearch: string) => {
     const changesSearchMode =
       Boolean(searchInput.trim()) !== Boolean(nextSearch.trim());
     const smallScreen = window.matchMedia?.("(max-width: 680px)").matches;
-    const reducedMotion = window.matchMedia?.(
-      "(prefers-reduced-motion: reduce)"
-    ).matches;
 
     if (
       changesSearchMode &&
       smallScreen &&
-      !reducedMotion &&
-      typeof document.startViewTransition === "function"
+      supportsNativeSearchTransitions
     ) {
       document.startViewTransition(() => {
         flushSync(() => setSearchInput(nextSearch));
@@ -544,9 +543,11 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
 
   return (
     <div
-      className={`app-shell ${
-        searchInput.trim() ? "app-shell--searching" : ""
-      }`}
+      className={[
+        "app-shell",
+        searchInput.trim() ? "app-shell--searching" : "",
+        supportsNativeSearchTransitions ? "app-shell--native-transitions" : ""
+      ].filter(Boolean).join(" ")}
     >
       <header className="hero">
         <button
