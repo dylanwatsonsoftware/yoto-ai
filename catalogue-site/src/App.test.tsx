@@ -219,44 +219,12 @@ describe("catalogue app", () => {
     expect(shell).not.toHaveClass("app-shell--searching");
   });
 
-  it("animates only when entering or leaving focused search mode", async () => {
-    const user = userEvent.setup();
-    const startViewTransition = vi.fn((update: () => void) => {
-      update();
-      return {} as ViewTransition;
-    });
-    Object.defineProperty(document, "startViewTransition", {
-      configurable: true,
-      value: startViewTransition
-    });
-    const matchMedia = vi.fn((query: string) => ({
-      matches: query === "(max-width: 680px)"
-    }));
-    Object.defineProperty(window, "matchMedia", {
-      configurable: true,
-      value: matchMedia
-    });
-    render(<App catalogue={catalogue} />);
-    const shell = screen.getByRole("searchbox").closest(".app-shell");
-
-    expect(shell).toHaveClass("app-shell--native-transitions");
-
-    await user.type(screen.getByRole("searchbox"), "Ada");
-    expect(startViewTransition).toHaveBeenCalledTimes(1);
-
-    await user.click(screen.getByRole("button", { name: "Clear search" }));
-    expect(startViewTransition).toHaveBeenCalledTimes(2);
-
-    Reflect.deleteProperty(document, "startViewTransition");
-    Reflect.deleteProperty(window, "matchMedia");
-  });
-
   it("does not animate focused search mode on larger screens", async () => {
     const user = userEvent.setup();
-    const startViewTransition = vi.fn();
-    Object.defineProperty(document, "startViewTransition", {
+    const animate = vi.fn();
+    Object.defineProperty(Element.prototype, "animate", {
       configurable: true,
-      value: startViewTransition
+      value: animate
     });
     Object.defineProperty(window, "matchMedia", {
       configurable: true,
@@ -265,9 +233,37 @@ describe("catalogue app", () => {
     render(<App catalogue={catalogue} />);
 
     await user.type(screen.getByRole("searchbox"), "Ada");
-    expect(startViewTransition).not.toHaveBeenCalled();
+    expect(animate).not.toHaveBeenCalled();
 
-    Reflect.deleteProperty(document, "startViewTransition");
+    Reflect.deleteProperty(Element.prototype, "animate");
+    Reflect.deleteProperty(window, "matchMedia");
+  });
+
+  it("animates the search panel transform on the compositor", async () => {
+    const user = userEvent.setup();
+    const animate = vi.fn(() => ({}) as Animation);
+    Object.defineProperty(Element.prototype, "animate", {
+      configurable: true,
+      value: animate
+    });
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: vi.fn((query: string) => ({
+        matches: query === "(max-width: 680px)"
+      }))
+    });
+    render(<App catalogue={catalogue} />);
+    expect(screen.getByRole("searchbox").closest(".app-shell")).toHaveClass(
+      "app-shell--compositor-transitions"
+    );
+
+    await user.type(screen.getByRole("searchbox"), "Ada");
+    expect(animate).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: "Clear search" }));
+    expect(animate).toHaveBeenCalledTimes(2);
+
+    Reflect.deleteProperty(Element.prototype, "animate");
     Reflect.deleteProperty(window, "matchMedia");
   });
 

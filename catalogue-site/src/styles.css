@@ -199,7 +199,6 @@ main {
 
 .discovery {
   position: relative;
-  view-transition-name: catalogue-search;
   padding: 16px;
   background: color-mix(in srgb, var(--paper) 90%, transparent);
   border: 1px solid rgba(221, 213, 200, 0.9);
@@ -1112,12 +1111,6 @@ footer {
 }
 
 @media (max-width: 680px) {
-  ::view-transition-group(root),
-  ::view-transition-group(catalogue-search) {
-    animation-duration: 280ms;
-    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
   .app-shell {
     padding: 12px 12px 28px;
   }
@@ -1294,13 +1287,13 @@ footer {
     display: none;
   }
 
-  .app-shell--searching:not(.app-shell--native-transitions) .hero {
+  .app-shell--searching:not(.app-shell--compositor-transitions) .hero {
     pointer-events: none;
     animation: mobile-hero-collapse 280ms cubic-bezier(0.22, 1, 0.36, 1)
       forwards;
   }
 
-  .app-shell--searching.app-shell--native-transitions .hero {
+  .app-shell--searching.app-shell--compositor-transitions .hero {
     display: none;
   }
 
@@ -1312,7 +1305,6 @@ footer {
     position: sticky !important;
     z-index: 30;
     top: 0;
-    margin-inline: -12px;
     padding: 10px 12px 12px;
     border-width: 0 0 1px;
     border-radius: 0 0 16px 16px;
@@ -1345,12 +1337,7 @@ footer {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  ::view-transition-group(root),
-  ::view-transition-group(catalogue-search) {
-    animation-duration: 1ms;
-  }
-
-  .app-shell--searching:not(.app-shell--native-transitions) .hero {
+  .app-shell--searching:not(.app-shell--compositor-transitions) .hero {
     animation-duration: 1ms;
   }
 

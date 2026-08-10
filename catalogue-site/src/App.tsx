@@ -391,8 +391,8 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
     state.cover !== "all" ||
     state.depth !== "all" ||
     state.includeOtherLanguages === true;
-  const supportsNativeSearchTransitions =
-    typeof document.startViewTransition === "function" &&
+  const supportsCompositorSearchTransitions =
+    typeof Element.prototype.animate === "function" &&
     !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
   const setSearchWithTransition = (nextSearch: string) => {
@@ -403,11 +403,25 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
     if (
       changesSearchMode &&
       smallScreen &&
-      supportsNativeSearchTransitions
+      supportsCompositorSearchTransitions
     ) {
-      document.startViewTransition(() => {
-        flushSync(() => setSearchInput(nextSearch));
-      });
+      const searchPanel = document.querySelector<HTMLElement>(".discovery");
+      const previousTop = searchPanel?.getBoundingClientRect().top;
+      flushSync(() => setSearchInput(nextSearch));
+      const nextTop = searchPanel?.getBoundingClientRect().top;
+
+      if (searchPanel && previousTop !== undefined && nextTop !== undefined) {
+        searchPanel.animate(
+          [
+            { transform: `translateY(${previousTop - nextTop}px)` },
+            { transform: "translateY(0)" }
+          ],
+          {
+            duration: 320,
+            easing: "cubic-bezier(0.22, 1, 0.36, 1)"
+          }
+        );
+      }
       return;
     }
 
@@ -546,7 +560,9 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
       className={[
         "app-shell",
         searchInput.trim() ? "app-shell--searching" : "",
-        supportsNativeSearchTransitions ? "app-shell--native-transitions" : ""
+        supportsCompositorSearchTransitions
+          ? "app-shell--compositor-transitions"
+          : ""
       ].filter(Boolean).join(" ")}
     >
       <header className="hero">
