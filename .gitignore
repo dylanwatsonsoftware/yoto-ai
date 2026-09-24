@@ -10,3 +10,6 @@ coverage/
 
 generated
 portable-packages
+imports/
+artwork/
+previews/

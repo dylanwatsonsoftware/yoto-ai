@@ -1,13 +1,34 @@
 ---
 name: yoto-myo-idea-exchange-google-drive
-description: Read-only search and import from the single Yoto MYO Idea Exchange Google Drive root, using a disposable local SQLite/FTS catalogue and flexible folder/archive layout detection. Use to find a shared MYO playlist and prepare a Yoto playlist package.
+description: Read-only exact-ID import and catalogue search from the single Yoto MYO Idea Exchange Google Drive root, using minimal ancestry validation for explicit selections and exhaustive scans only for discovery or cache refreshes. Use to find or import a shared MYO playlist and prepare a Yoto playlist package.
 ---
 
 # Yoto MYO Idea Exchange Google Drive
 
 Search only Drive root `12ueGfirgSd21B7ShXZiATmrZCl3J4OqI`. Never search another Drive location and never modify Drive.
 
+## Authorization and workflow selection
+
+Treat an explicit request to use this skill as authorization for its routine
+read-only Drive calls, listed local setup commands, temporary downloads,
+extraction, and package creation. Do not ask for separate conversational
+permission for those steps. If the execution environment itself requires an
+approval, request the narrowest reusable approval once and do not repeat an
+equivalent request. Batch independent Drive reads to reduce tool prompts.
+
+Choose the narrowest workflow that satisfies the request:
+
+- **Exact selection:** The user supplies exact Drive IDs/URLs, full paths, or
+  otherwise unambiguously selects named items. Use the exact-selection
+  workflow below. Do not refresh or search the catalogue.
+- **Discovery:** The user asks to find, browse, or choose content without exact
+  Drive IDs. Use the index and search workflow.
+- **Website cache:** The user asks to refresh, rebuild, or publish the public
+  catalogue. Use the website cache workflow.
+
 ## Setup
+
+Check first and install or rebuild only what is missing:
 
 ```bash
 npm ci
@@ -20,11 +41,42 @@ SQLite 3 and `ffprobe` are required. ZIP uses the platform unzip tool; `.7z`
 requires `7zz` or `7z`. Run the built `dist/cli.js` with Node 22 when `tsx`
 cannot create its local IPC socket.
 
-## Index workflow
+Do not run catalogue CLI extraction or package commands concurrently. They
+share local SQLite initialization state and concurrent processes can fail with
+`database is locked`. Keep those commands sequential; only independent Drive
+downloads may use bounded concurrency.
+
+## Exact-selection workflow
+
+For every explicitly selected item:
+
+1. Fetch live metadata for the selected Drive ID: ID, title, MIME type, size,
+   modified time, checksum when available, and direct parent IDs.
+2. Follow only its parent chain until reaching the configured root. Cache
+   parent metadata by Drive ID and share it across all selections so common
+   branches are fetched once. Reject an item if every available chain ends
+   before the configured root. Do not recursively scan the root or unrelated
+   branches merely to prove ancestry.
+3. Revalidate the selected ID and metadata immediately before download.
+4. List the selected item's immediate parent once for sibling reporting. If
+   the result is capped or contains at least 100 entries, report the returned
+   candidates as a capped, incomplete sibling listing. Do not run modified-time
+   windows solely to complete sibling reporting for an already exact selection.
+5. When the user explicitly selected a subset, proceed with only that subset,
+   report visible siblings and excluded non-playlist content, and do not pause
+   to ask the user to select again.
+6. For an expanded selected folder, recursively enumerate only that folder's
+   descendants. Completeness is required inside the selected folder because
+   those files form the package; use the capped-listing window rules there if
+   necessary.
+
+Do not create or refresh the SQLite catalogue for an exact-selection import.
+
+## Index and discovery workflow
 
 Use the connected Google Drive tool read-only. On first use, recursively query children using Drive parent filters and a high result limit. Persist these fields in connector-result JSON: `id`, `parentId`, full `path`, `title`, `mimeType`, `size`, `modifiedTime`, checksum when available, and whether it is a playlist candidate.
 
-Before ingesting, prove every entry’s indexed ancestry reaches the configured root. Reject anything else.
+Before ingesting, prove every entry’s indexed ancestry reaches the configured root. Reject anything else. These exhaustive rules apply to discovery, index refreshes, and website-cache work—not to immediate-parent sibling reporting for an exact selection.
 
 ```bash
 npm run catalogue -- index refresh --input /tmp/drive-items.json --json
@@ -116,25 +168,35 @@ must leave the previous complete cache unchanged.
 
 ## Nested-folder choices
 
-Whenever a search result or selected item is inside a folder, list that folder's direct children before downloading. Identify every playlist candidate among them:
+Whenever a discovered search result is inside a folder, list that folder's
+direct children before downloading. For an exact selection, use the single
+immediate-parent listing defined above. Identify visible playlist candidates:
 
 - `.zip` and `.7z` archives
 - expanded playlist folders
 - subfolders that may contain additional playlist candidates
 
-Tell the user the candidate names, types, and sizes when available. If there is more than one candidate, pause and ask whether to:
+Tell the user the candidate names, types, and sizes when available. For a
+discovery request with more than one candidate, pause and ask whether to:
 
 1. import only the originally selected item;
 2. combine all candidates;
 3. choose a subset; or
 4. inspect a subfolder.
 
-Do not silently choose the first child or ignore sibling archives/folders. Do not download or package candidates until the user chooses. If the user's request already explicitly names a subset or says to use all items, honor that choice without asking again, but still report every discovered candidate and any excluded non-playlist content.
+Do not silently choose the first child or ignore sibling archives/folders in a
+discovery request. Do not download or package discovery candidates until the
+user chooses. If the request already explicitly names a subset or says to use
+all items, honor that choice without asking again, report the candidates
+returned by the single parent listing and any excluded non-playlist content,
+then continue.
 
-For a large sibling folder, write the complete candidate listing to a local
-report and summarize it in the response. If the connector reaches its response
-cap, use the index workflow's non-overlapping modified-time windows before
-calling the sibling scan complete.
+For a large discovery folder, write the complete candidate listing to a local
+report and summarize it. If the connector reaches its response cap, use the
+index workflow's non-overlapping modified-time windows before calling the
+discovery scan complete. For an exact selection, do not claim completeness or
+write a "complete" report from capped results; state the cap and continue with
+the selected item.
 
 ## Package discovery
 
@@ -144,11 +206,32 @@ Discover recursively:
 
 - Prefer audio in `audio_files/`, otherwise accept supported audio anywhere, including the playlist root.
 - Order leading filename numbers first; otherwise use natural filename order.
-- Cover precedence, case-insensitive: `cover_image.*`, `cover.*`, `folder.*`.
+- Cover precedence, case-insensitive: exact `cover_image.*`, `cover.*`,
+  `folder.*`, then descriptive image names ending in `cover` or `cover image`.
 - Icon precedence: `Icon 01.png`; numeric images inside `image_files/`; numeric images in the playlist root.
 - Normalize leading zeros and exclude the selected cover from icons.
 - Reject duplicate track positions and same-precedence icon conflicts.
 - Derive missing icons from the cover with deterministic 16×16 center-crop/RGBA conversion. Generate a neutral cover when absent.
+
+Before using a generated fallback, inspect the selected playlist recursively
+for supplied artwork and inspect audio metadata for embedded artwork. Record
+every generated fallback in the consolidated preview. If generation is still
+needed, generate at most one image per playlist and reuse that image for the
+cover and all derived track icons; never generate one image per track.
+
+When combining multiple seasons into one Yoto playlist, preserve each season
+as a separate ordered package so `yoto-ai` can append each package as its own
+chapter. Do not flatten season-local numbering into one undifferentiated
+chapter. Skip this extra split only when the source already contains an
+unambiguous chapter structure that preserves the season boundaries.
+
+When multiple selected sibling archives or folders each resolve to one audio
+track and each item is a standalone story, episode, or song, preserve their
+user-selected order in one package and pass it to `yoto-ai` with
+`playlist preview-create --single-track-chapters`. Do not flatten those items
+into one multi-track chapter. Keep the normal grouped layout when the files are
+parts of one continuous story or album; decide from source structure and the
+user's selection, not merely from the number of tracks.
 
 Treat an obvious letter/number filename typo such as `1o.` for `10.` as a
 duplicate-position error first. Keep Drive unchanged. When the user's exact
@@ -156,10 +239,25 @@ selection is already clear, normalize only the temporary local filename,
 record the original and normalized names in the consolidated preview, and
 otherwise ask before continuing.
 
+Do not treat a leading numeric quantity as a track position merely because it
+starts a filename. For example, `4,000 Mouse Trap...` is a title, not track 4.
+When an incidental leading number collides with natural ordering, keep the
+source unchanged, add a nonnumeric prefix only to the temporary staging name,
+preserve its natural sort position, restore the original displayed title in
+the package manifest, and record the normalization in the consolidated
+preview.
+
 Connected Drive downloads may return short-lived signed attachment URLs.
 Consume them immediately without printing them, placing them in prompts, or
 persisting them. Use bounded concurrency, preserve relative filenames, and
 verify downloaded byte sizes against live Drive metadata before packaging.
+
+If the connector rejects a selected file because of a documented download-size
+limit, do not repeat the same fetch or attempt unsupported browser-download
+workarounds. Use a supported authenticated download surface when one is
+already available; otherwise report the exact affected item and expected size,
+prepare everything else that can safely proceed, and ask the user to place only
+that file in a specified local directory.
 
 Build the portable package:
 
@@ -176,3 +274,15 @@ npm run catalogue -- package build \
 ```
 
 Pass the output directory to `yoto-ai`. Never publish or modify Drive from this skill.
+
+## Post-run improvement
+
+After each run, review concrete friction, unnecessary work, repeated manual
+steps, and recoverable failures. If the run reveals a durable improvement,
+update this skill or its bundled scripts after the active operation is safely
+finished, then validate the skill and any changed behavior. Keep revisions
+small, evidence-based, and reusable; do not record secrets, account data,
+user-specific content, temporary paths, or one-off service failures. Do not
+change instructions or executable code in the middle of a confirmed publish
+batch. If no reusable improvement is warranted, leave the skill unchanged.
+Briefly report any post-run skill changes to the user.

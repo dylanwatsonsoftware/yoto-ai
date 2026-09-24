@@ -2,8 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 import {
   applyPreview,
   findSimilarPlaylists,
-  previewCreate
+  previewCreate,
+  previewRepairArtwork,
+  previewRepairSongLayout,
+  verifyAppliedPreview
 } from "./publishing.js";
+import type { PublishPreview } from "./publishing.js";
 import type { PlaylistPackage } from "./package-contract.js";
 
 const packageManifest: PlaylistPackage = {
@@ -69,6 +73,38 @@ describe("Yoto publishing", () => {
     ]);
   });
 
+  it("verifies a persisted one-item-per-chapter collection", () => {
+    const preview = previewCreate(
+      "/package",
+      packageManifest,
+      undefined,
+      undefined,
+      "single-track-chapters"
+    );
+    const verification = verifyAppliedPreview(preview, {
+      cardId: "card-1",
+      content: {
+        chapters: packageManifest.tracks.map((track, index) => ({
+          key: `import-${index + 1}`,
+          title: track.title,
+          overlayLabel: String(index + 1),
+          tracks: [{
+            key: "01",
+            title: track.title,
+            overlayLabel: String(index + 1)
+          }]
+        }))
+      }
+    }, "card-1");
+
+    expect(verification).toEqual({
+      cardId: "card-1",
+      verified: true,
+      source: "readback",
+      issues: []
+    });
+  });
+
   it("uploads every asset and mutates once when a preview is applied", async () => {
     const preview = previewCreate("/package", packageManifest);
     const api = {
@@ -83,6 +119,115 @@ describe("Yoto publishing", () => {
     expect(api.uploadIcon).toHaveBeenCalledTimes(2);
     expect(api.uploadCover).toHaveBeenCalledTimes(1);
     expect(api.mutateCard).toHaveBeenCalledTimes(1);
+  });
+
+  it("repairs artwork without re-uploading audio", async () => {
+    const preview = previewRepairArtwork("/package", packageManifest, {
+      cardId: "card-1",
+      title: "Dance Mix",
+      tracks: packageManifest.tracks.map((track) => ({
+        title: track.title,
+        artist: track.artist,
+        duration: track.audio.duration
+      })),
+      metadata: { content: { chapters: [] }, metadata: {} }
+    });
+    const api = {
+      uploadAudio: vi.fn(),
+      uploadCover: vi.fn(async () => ({ mediaUrl: "cover-url" })),
+      uploadIcon: vi.fn(async () => ({ mediaUrl: "icon-url" })),
+      mutateCard: vi.fn(async () => ({ cardId: "card-1" }))
+    };
+
+    await applyPreview(preview, api);
+
+    expect(api.uploadAudio).not.toHaveBeenCalled();
+    expect(api.uploadIcon).toHaveBeenCalledTimes(2);
+    expect(api.uploadCover).toHaveBeenCalledOnce();
+    expect(api.mutateCard).toHaveBeenCalledOnce();
+  });
+
+  it("repairs song layout without uploading any media", async () => {
+    const preview = previewRepairSongLayout("/package", packageManifest, {
+      cardId: "card-1",
+      title: "Dance Mix",
+      tracks: [],
+      metadata: {
+        content: {
+          chapters: [{
+            key: "grouped",
+            tracks: packageManifest.tracks.map((track) => ({ title: track.title }))
+          }]
+        },
+        metadata: {}
+      }
+    }, "grouped");
+    const api = {
+      uploadAudio: vi.fn(),
+      uploadCover: vi.fn(),
+      uploadIcon: vi.fn(),
+      mutateCard: vi.fn(async () => ({ cardId: "card-1" }))
+    };
+
+    await applyPreview(preview, api);
+
+    expect(api.uploadAudio).not.toHaveBeenCalled();
+    expect(api.uploadIcon).not.toHaveBeenCalled();
+    expect(api.uploadCover).not.toHaveBeenCalled();
+    expect(api.mutateCard).toHaveBeenCalledOnce();
+  });
+
+  it("uploads only icons for a targeted track-artwork repair", async () => {
+    const preview = {
+      ...previewCreate("/package", packageManifest, {
+        cardId: "card-1",
+        title: "Dance Mix",
+        tracks: [],
+        metadata: { content: { chapters: [] }, metadata: {} }
+      }),
+      operation: "repair-track-artwork",
+      tracksToAdd: [],
+      targetChapterKeys: ["one", "two"]
+    } as Parameters<typeof applyPreview>[0];
+    const api = {
+      uploadAudio: vi.fn(),
+      uploadCover: vi.fn(),
+      uploadIcon: vi.fn(async () => ({ mediaUrl: "icon-url" })),
+      mutateCard: vi.fn(async () => ({ cardId: "card-1" }))
+    };
+
+    await applyPreview(preview, api);
+
+    expect(api.uploadAudio).not.toHaveBeenCalled();
+    expect(api.uploadIcon).toHaveBeenCalledTimes(2);
+    expect(api.uploadCover).not.toHaveBeenCalled();
+    expect(api.mutateCard).toHaveBeenCalledOnce();
+  });
+
+  it("repairs track labels without uploading any media", async () => {
+    const preview = {
+      ...previewCreate("/package", packageManifest, {
+        cardId: "card-1",
+        title: "Dance Mix",
+        tracks: [],
+        metadata: { content: { chapters: [] }, metadata: {} }
+      }),
+      operation: "repair-track-labels",
+      tracksToAdd: []
+    } as unknown as PublishPreview;
+    const api = {
+      uploadAudio: vi.fn(),
+      uploadCover: vi.fn(),
+      uploadIcon: vi.fn(),
+      mutateCard: vi.fn(async () => ({ cardId: "card-1" }))
+    };
+
+    await applyPreview(preview, api);
+
+    expect(api.uploadAudio).not.toHaveBeenCalled();
+    expect(api.uploadIcon).not.toHaveBeenCalled();
+    expect(api.uploadCover).not.toHaveBeenCalled();
+    expect(api.mutateCard).toHaveBeenCalledOnce();
   });
 
   it("detects duplicates by stable source id before append", () => {

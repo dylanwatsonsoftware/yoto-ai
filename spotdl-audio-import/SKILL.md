@@ -1,6 +1,6 @@
 ---
 name: spotdl-audio-import
-description: Resolve an authorized Spotify song, album, or playlist to YouTube/YouTube Music matches with spotDL, obtain one consolidated confirmation, download MP3 audio, and create a validated Yoto playlist package. Use when a user asks to prepare Spotify-linked audio for Yoto.
+description: Resolve an authorized Spotify song, album, or playlist to YouTube/YouTube Music matches with spotDL, run saved incremental Spotify-to-Yoto sync profiles, obtain one consolidated confirmation, download MP3 audio, and create a validated Yoto playlist package. Use when a user asks to prepare or sync Spotify-linked audio for Yoto, including a named saved sync such as Kids Favourites.
 ---
 
 # spotDL Audio Import
@@ -23,8 +23,9 @@ On non-macOS systems install FFmpeg with the system package manager. Never provi
 
 ## Workflow
 
-1. Confirm the user has permission to copy every item.
-2. Resolve the complete Spotify song, album, or playlist before downloading:
+1. When the user names a saved sync, read [references/saved-syncs.md](references/saved-syncs.md), use its exact Spotify source and Yoto card ID, and treat "sync" as append-only missing-song reconciliation. Do not infer mirroring, deletion, or reordering.
+2. Confirm the user has permission to copy every item.
+3. Resolve the complete Spotify song, album, or playlist before downloading:
 
 ```bash
 npm run import -- resolve --url "SPOTIFY_URL" --title "Playlist title" \
@@ -32,7 +33,11 @@ npm run import -- resolve --url "SPOTIFY_URL" --title "Playlist title" \
 ```
 
 The command uses an isolated empty spotDL config so saved cookies or credentials cannot be inherited. Reject missing, ambiguous, or multiple plausible matches.
-3. Produce one immutable batch preview:
+4. For a saved sync, inspect the live target with `yoto-ai`, compare the full
+   Spotify source against its tracks, and retain only missing songs. Stop if the
+   fixed Yoto card cannot be verified; never substitute or create a target by
+   title alone.
+5. Produce one immutable batch preview:
 
 ```bash
 npm run import -- preview --input /tmp/resolved.json \
@@ -41,14 +46,14 @@ npm run import -- preview --input /tmp/resolved.json \
   --output /tmp/spotdl-preview.json
 ```
 
-4. Show the full preview once: every Spotify item, matched source, destination, permission statement, and the resulting Yoto playlist creation. Ask exactly one confirmation for the complete batch.
-5. Only after the user explicitly confirms, mint the bound token:
+6. Show the full preview once: every Spotify item, matched source, destination, permission statement, and the resulting Yoto playlist creation or append. Ask exactly one confirmation for the complete batch.
+7. Only after the user explicitly confirms, mint the bound token:
 
 ```bash
 npm run import -- confirm --preview /tmp/spotdl-preview.json
 ```
 
-6. Use the returned token without editing the preview:
+8. Use the returned token without editing the preview:
 
 ```bash
 npm run import -- download --preview /tmp/spotdl-preview.json \
@@ -58,6 +63,9 @@ npm run import -- download --preview /tmp/spotdl-preview.json \
 ```
 
 If any match changes, regenerate the preview and request one new batch confirmation. Never download before confirmation.
+9. After packaging a saved sync, use `yoto-ai` to preview the append to the
+   fixed card. Preserve its detected song-playlist layout and require the one
+   final Yoto confirmation defined by that skill.
 
 ## Artwork and output
 
@@ -67,6 +75,14 @@ Do not transfer Spotify artwork. The CLI creates a deterministic neutral title c
 
 - Accept only user-authorized copying.
 - Bundle albums/playlists into one confirmation, never one prompt per track.
+- Do not ask for separate conversational approval before routine setup,
+  read-only inspection, metadata resolution, availability checks, or each CLI
+  command. Run those steps autonomously. If the execution environment itself
+  requires a tool permission prompt, request the narrowest reusable command
+  prefix and avoid repeating an equivalent request.
+- After the user confirms the immutable batch preview, treat that confirmation
+  as authorization for every download and packaging command in that batch; do
+  not ask again between commands or tracks.
 - Do not silently choose ambiguous matches or continue with missing tracks.
 - Do not publish to Yoto; this skill only creates the portable package.
 - Preserve stable Spotify source IDs for duplicate detection.

@@ -34,6 +34,7 @@ function coverRank(path: string): number | undefined {
   if (name === "cover_image") return 0;
   if (name === "cover") return 1;
   if (name === "folder") return 2;
+  if (/(?:^|[\s_-])cover(?:[\s_-]+image)?$/.test(name)) return 3;
   return undefined;
 }
 

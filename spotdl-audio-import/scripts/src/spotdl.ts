@@ -108,18 +108,53 @@ export function verifyConfirmationToken(
 
 export function buildSpotdlDownloadArgs(
   preview: BatchPreview,
-  outputDirectory: string
-): string[] {
-  return [
-    "download",
-    ...preview.tracks.map(
-      (track) => `${track.matchedUrl}|${track.sourceUrl}`
-    ),
-    "--format",
-    "mp3",
-    "--output",
-    `${outputDirectory}/{list-position}. {title}.{output-ext}`,
-    "--overwrite",
-    "skip"
-  ];
+  outputDirectory: string,
+  saveFile: string
+) {
+  const songs = preview.tracks.map((track, index) => ({
+    name: track.title,
+    artists: [track.artist],
+    artist: track.artist,
+    genres: [],
+    disc_number: 1,
+    disc_count: 1,
+    album_name: preview.title,
+    album_artist: track.artist,
+    duration: 0,
+    year: 0,
+    date: "",
+    track_number: index + 1,
+    tracks_count: preview.tracks.length,
+    song_id: track.sourceId,
+    explicit: false,
+    publisher: "",
+    url: track.sourceUrl,
+    isrc: null,
+    cover_url: null,
+    copyright_text: null,
+    download_url: track.matchedUrl,
+    lyrics: null,
+    popularity: null,
+    album_id: track.sourceId,
+    list_name: preview.title,
+    list_url: null,
+    list_position: index + 1,
+    list_length: preview.tracks.length,
+    artist_id: null,
+    album_type: "playlist"
+  }));
+
+  return {
+    songs,
+    args: [
+      "download",
+      saveFile,
+      "--format",
+      "mp3",
+      "--output",
+      `${outputDirectory}/{list-position}. {title}.{output-ext}`,
+      "--overwrite",
+      "skip"
+    ]
+  };
 }

@@ -166,7 +166,10 @@ async function main(): Promise<unknown> {
     const downloadDir = option(args, "--download-dir");
     await mkdir(downloadDir, { recursive: true });
     const isolatedConfig = await mkdtemp(join(tmpdir(), "spotdl-config-"));
-    await run("spotdl", buildSpotdlDownloadArgs(preview, downloadDir), isolatedConfig);
+    const saveFile = join(downloadDir, "frozen-batch.spotdl");
+    const plan = buildSpotdlDownloadArgs(preview, downloadDir, saveFile);
+    await writeFile(saveFile, `${JSON.stringify(plan.songs, null, 2)}\n`, { mode: 0o600 });
+    await run("spotdl", plan.args, isolatedConfig);
     return packageDownloads(preview, downloadDir, option(args, "--output"));
   }
   throw new Error("Unknown command");

@@ -115,6 +115,139 @@ export function buildYotoCard(input: {
     | undefined;
   const existingChapters =
     (previous?.content?.chapters as unknown[] | undefined) ?? [];
+  const coverUrl = (
+    input.cover as { coverImage?: { mediaUrl?: string } } | null
+  )?.coverImage?.mediaUrl;
+  if (input.preview.operation === "repair-track-artwork") {
+    const targetKeys = input.preview.targetChapterKeys ?? [];
+    const iconByChapterKey = new Map(
+      targetKeys.map((key, index) => [key, iconReference(input.icons[index])])
+    );
+    const chapters = existingChapters.map((chapterValue) => {
+      const chapter = chapterValue as {
+        key?: string;
+        tracks?: Array<Record<string, unknown>>;
+        display?: Record<string, unknown>;
+        [key: string]: unknown;
+      };
+      const icon16x16 = chapter.key ? iconByChapterKey.get(chapter.key) : undefined;
+      if (icon16x16 === undefined) return chapter;
+      return {
+        ...chapter,
+        display: { ...(chapter.display ?? {}), icon16x16 },
+        tracks: (chapter.tracks ?? []).map((track) => ({
+          ...track,
+          display: {
+            ...((track.display as Record<string, unknown> | undefined) ?? {}),
+            icon16x16
+          }
+        }))
+      };
+    });
+    return {
+      cardId: input.preview.cardId,
+      title: input.preview.existing?.title || input.preview.package.title,
+      content: { ...(previous?.content ?? {}), chapters },
+      metadata: { ...(previous?.metadata ?? {}) }
+    };
+  }
+  if (input.preview.operation === "repair-track-labels") {
+    let trackIndex = 0;
+    const chapters = existingChapters.map((chapterValue) => {
+      const chapter = chapterValue as {
+        tracks?: Array<Record<string, unknown>>;
+        [key: string]: unknown;
+      };
+      return {
+        ...chapter,
+        tracks: (chapter.tracks ?? []).map((track) => ({
+          ...track,
+          overlayLabel: String(++trackIndex)
+        }))
+      };
+    });
+    return {
+      cardId: input.preview.cardId,
+      title: input.preview.existing?.title || input.preview.package.title,
+      content: { ...(previous?.content ?? {}), chapters },
+      metadata: { ...(previous?.metadata ?? {}) }
+    };
+  }
+  if (input.preview.operation === "repair-song-layout") {
+    const targetKey = input.preview.targetChapterKey;
+    const targetIndex = existingChapters.findIndex(
+      (chapterValue) => (chapterValue as { key?: string }).key === targetKey
+    );
+    if (targetIndex < 0) throw new Error(`Target chapter ${targetKey} was not found`);
+    const target = existingChapters[targetIndex] as {
+      tracks?: Array<Record<string, unknown>>;
+      [key: string]: unknown;
+    };
+    const replacement = (target.tracks ?? []).map((track, index) => {
+      const manifestTrack = input.preview.package.tracks[index];
+      if (!manifestTrack) throw new Error(`Missing repair track at position ${index + 1}`);
+      const overlayLabel = String(targetIndex + index + 1);
+      return {
+        ...target,
+        key: chapterKey(manifestTrack.sourceId),
+        title: track.title,
+        overlayLabel,
+        duration: track.duration,
+        fileSize: track.fileSize,
+        display: track.display ?? target.display,
+        tracks: [{ ...track, key: "01", overlayLabel }]
+      };
+    });
+    return {
+      cardId: input.preview.cardId,
+      title: input.preview.existing?.title || input.preview.package.title,
+      content: {
+        ...(previous?.content ?? {}),
+        chapters: [
+          ...existingChapters.slice(0, targetIndex),
+          ...replacement,
+          ...existingChapters.slice(targetIndex + 1)
+        ]
+      },
+      metadata: { ...(previous?.metadata ?? {}) }
+    };
+  }
+  if (input.preview.operation === "repair-artwork") {
+    let iconIndex = 0;
+    const chapters = existingChapters.map((chapterValue) => {
+      const chapter = chapterValue as {
+        tracks?: Array<Record<string, unknown>>;
+        display?: Record<string, unknown>;
+        [key: string]: unknown;
+      };
+      const tracks = (chapter.tracks ?? []).map((track) => ({
+        ...track,
+        display: {
+          ...((track.display as Record<string, unknown> | undefined) ?? {}),
+          icon16x16: iconReference(input.icons[iconIndex++])
+        }
+      }));
+      return {
+        ...chapter,
+        display: {
+          ...(chapter.display ?? {}),
+          icon16x16:
+            tracks[0]?.display &&
+            (tracks[0].display as { icon16x16?: string }).icon16x16
+        },
+        tracks
+      };
+    });
+    return {
+      cardId: input.preview.cardId,
+      title: input.preview.existing?.title || input.preview.package.title,
+      content: { ...(previous?.content ?? {}), chapters },
+      metadata: {
+        ...(previous?.metadata ?? {}),
+        ...(coverUrl ? { cover: { imageL: coverUrl } } : {})
+      }
+    };
+  }
   const tracks = input.preview.tracksToAdd.map((track, index) => {
     const transcode = input.audio[index];
     if (!transcode) throw new Error(`Missing completed transcode for ${track.title}`);
@@ -137,10 +270,7 @@ export function buildYotoCard(input: {
   });
   const duration = tracks.reduce((sum, track) => sum + track.duration, 0);
   const fileSize = tracks.reduce((sum, track) => sum + track.fileSize, 0);
-  const coverUrl = (
-    input.cover as { coverImage?: { mediaUrl?: string } } | null
-  )?.coverImage?.mediaUrl;
-  const chapter = {
+  const groupedChapter = {
     key: chapterKey(input.preview.package.source.id),
     title: input.preview.package.title,
     overlayLabel: "1",
@@ -151,22 +281,61 @@ export function buildYotoCard(input: {
     display: { icon16x16: iconReference(input.icons[0]) },
     tracks
   };
+  const isAppend = input.preview.operation === "append";
+  const preservesSongLayout =
+    isAppend &&
+    existingChapters.length > 0 &&
+    existingChapters.every((chapterValue) => {
+      const chapter = chapterValue as { tracks?: unknown[] };
+      return chapter.tracks?.length === 1;
+    });
+  const usesSingleTrackLayout =
+    preservesSongLayout ||
+    (!isAppend && input.preview.chapterLayout === "single-track-chapters");
+  const appendedChapters = usesSingleTrackLayout
+    ? tracks.map((track, index) => {
+        const overlayLabel = String((isAppend ? existingChapters.length : 0) + index + 1);
+        return {
+          key: chapterKey(input.preview.tracksToAdd[index]!.sourceId),
+          title: track.title,
+          overlayLabel,
+          defaultTrackDisplay: "1",
+          defaultTrackAmbient: "none",
+          duration: track.duration,
+          fileSize: track.fileSize,
+          display: track.display,
+          tracks: [{ ...track, key: "01", overlayLabel }]
+        };
+      })
+    : [groupedChapter];
+  const previousMetadata =
+    (previous?.metadata as Record<string, unknown> | undefined) ?? {};
+  const previousMedia =
+    (previousMetadata.media as { duration?: number; fileSize?: number } | undefined) ?? {};
   const metadata = {
-    ...(previous?.metadata ?? {}),
-    description: input.preview.package.source.description,
-    media: { duration, fileSize },
+    ...previousMetadata,
+    ...(!isAppend
+      ? { description: input.preview.package.source.description }
+      : {}),
+    media: {
+      duration: duration + (isAppend ? previousMedia.duration ?? 0 : 0),
+      fileSize: fileSize + (isAppend ? previousMedia.fileSize ?? 0 : 0)
+    },
     ...(input.preview.operation === "create" && coverUrl
       ? { cover: { imageL: coverUrl } }
       : {})
   };
   return {
     ...(input.preview.cardId ? { cardId: input.preview.cardId } : {}),
-    title: input.preview.existing?.title || input.preview.package.title,
+    title:
+      input.preview.finalTitle ||
+      input.preview.existing?.title ||
+      input.preview.package.title,
     content: {
       ...(previous?.content ?? {}),
       playbackType:
         (previous?.content?.playbackType as string | undefined) ?? "linear",
-      chapters: [...existingChapters, chapter]
+      chapters: [...existingChapters, ...appendedChapters]
     },
     metadata
   };

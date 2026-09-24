@@ -65,20 +65,44 @@ describe("spotDL batch workflow", () => {
     ).toThrow(/expired/i);
   });
 
-  it("downloads the exact resolved batch without credential options", () => {
-    const args = buildSpotdlDownloadArgs(
+  it("downloads frozen matches without re-querying Spotify metadata", () => {
+    const plan = buildSpotdlDownloadArgs(
       buildBatchPreview({
         title: "Album",
         destination: "Yoto Album",
         permission: "Permitted",
         tracks
       }),
-      "/tmp/output"
+      "/tmp/output",
+      "/tmp/frozen-batch.spotdl"
     );
 
-    expect(args).toContain(
-      "https://www.youtube.com/watch?v=one|https://open.spotify.com/track/1"
-    );
-    expect(args.join(" ")).not.toMatch(/cookie|user-auth|password/i);
+    expect(plan.args).toContain("/tmp/frozen-batch.spotdl");
+    expect(plan.args.join(" ")).not.toContain("open.spotify.com");
+    expect(plan.args.join(" ")).not.toMatch(/cookie|user-auth|password/i);
+    expect(plan.songs).toMatchObject([
+      {
+        name: "One",
+        artist: "Artist",
+        url: "https://open.spotify.com/track/1",
+        song_id: "spotify:track:1",
+        download_url: "https://www.youtube.com/watch?v=one",
+        list_position: 1,
+        list_length: 2
+      },
+      {
+        name: "Two",
+        list_position: 2,
+        list_length: 2
+      }
+    ]);
+    expect(plan.songs.every((song) =>
+      song.genres !== null &&
+      song.disc_count !== null &&
+      song.tracks_count !== null &&
+      song.track_number !== null &&
+      song.album_id !== null &&
+      song.album_artist !== null
+    )).toBe(true);
   });
 });

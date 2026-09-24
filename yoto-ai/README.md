@@ -154,6 +154,9 @@ check.
 - The final card mutation is attempted once and is never automatically retried.
   If it fails, the CLI includes Yoto's validation response so the payload can
   be corrected before the user explicitly retries.
+- After a successful mutation, the CLI reads the card back and verifies its
+  chapter keys, layout, and navigation labels. A failed read-back verification
+  is reported without repeating the mutation.
 
 ## Bundled CLI
 
@@ -171,7 +174,26 @@ npm run yoto -- playlist draft \
 npm run yoto -- playlist inspect-package --input /path/to/package --json
 npm run yoto -- playlist preview-create --input /path/to/package \
   --output /tmp/yoto-preview.json --json
+npm run yoto -- playlist preview-create --input /path/to/standalone-items \
+  --single-track-chapters --output /tmp/yoto-items-preview.json --json
+npm run yoto -- playlist preview-repair-artwork --input /path/to/package \
+  --card-id CARD_ID --output /tmp/yoto-artwork-preview.json --json
 ```
+
+To derive distinct numbered 16×16 RGBA icons from one source image, update the
+package manifest checksums, and write a nearest-neighbour contact sheet:
+
+```bash
+npm run render-numbered-icons -- \
+  --source /path/to/source.png \
+  --package /path/to/playlist-package \
+  --preview /tmp/numbered-icons.png
+```
+
+The renderer requires sequential manifest positions, writes `icons/01.png`,
+`icons/02.png`, and so on, and places four-pixel bitmap digits in the
+bottom-right corner. Use `--columns` and `--tile-size` to change only the
+contact-sheet layout.
 
 Save a preview JSON, show it to the user, and only after they confirm:
 

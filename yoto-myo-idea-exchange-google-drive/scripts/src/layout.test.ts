@@ -42,6 +42,17 @@ describe("MYO Idea Exchange playlist discovery", () => {
     ]);
   });
 
+  it("discovers descriptive cover image filenames", () => {
+    const layout = discoverPlaylistLayout([
+      "1. Song.mp3",
+      "Images/Tractor Ted Cover Image.jpg",
+      "Images/1.png"
+    ]);
+
+    expect(layout.cover).toBe("Images/Tractor Ted Cover Image.jpg");
+    expect(layout.tracks[0]?.icon).toBe("Images/1.png");
+  });
+
   it("discovers chapter icons named with an Image prefix", () => {
     const layout = discoverPlaylistLayout([
       "Track 1 Chapter 1.m4a",

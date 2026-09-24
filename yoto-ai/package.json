@@ -11,7 +11,8 @@
     "check": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "yoto": "tsx scripts/src/cli.ts"
+    "yoto": "tsx scripts/src/cli.ts",
+    "render-numbered-icons": "tsx scripts/src/render-numbered-icons.ts"
   },
   "engines": {
     "node": ">=22"
@@ -21,6 +22,7 @@
     "open": "^10.2.0",
     "pkce-challenge": "^5.0.0",
     "proper-lockfile": "^4.1.2",
+    "sharp": "0.35.3",
     "zod": "^4.1.12"
   },
   "optionalDependencies": {
@@ -35,4 +37,3 @@
     "vitest": "^4.0.16"
   }
 }
-
