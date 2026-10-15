@@ -7,6 +7,22 @@ description: Read-only exact-ID import and catalogue search from the single Yoto
 
 Search only Drive root `12ueGfirgSd21B7ShXZiATmrZCl3J4OqI`. Never search another Drive location and never modify Drive.
 
+## Runtime capabilities
+
+This skill provides local catalogue/package commands, not Google Drive access.
+Before importing, verify that the active agent has a supported authenticated
+Drive integration for exact-ID metadata (including parents), child listings,
+and binary downloads. Pi's built-in `read` reads local files; passing it a Drive
+URL will fail. Generic web search/fetch does not provide the required Drive
+metadata or downloads. If Drive access is missing, report that capability gap
+once and continue only independent local/Yoto preparation. Do not invent a
+connector or substitute public HTML scraping.
+
+Read this file before executing its workflow. In Pi, load it with
+`/skill:yoto-myo-idea-exchange-google-drive`; `$skill-name` is not Pi's explicit
+skill-loading command. Check bundled CLI source when syntax is uncertain:
+there is no `index find` command and no catalogue command that fetches Drive.
+
 ## Authorization and workflow selection
 
 Treat an explicit request to use this skill as authorization for its routine

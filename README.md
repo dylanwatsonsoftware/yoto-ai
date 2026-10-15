@@ -104,6 +104,47 @@ recovery instructions.
 
 ## Common workflows
 
+### Use with Pi
+
+From this checkout, start `pi` and approve this project's resources when Pi
+asks, then run `/reload` in an already-open session. `.pi/settings.json` exposes
+both Yoto skills and `.pi/prompts/yoto-import.md` adds `/yoto-import`.
+For use from other directories, install this checkout as a Pi package:
+
+```bash
+pi install /absolute/path/to/yoto-skill
+```
+
+Pi explicitly loads skills with `/skill:yoto-ai` and
+`/skill:yoto-myo-idea-exchange-google-drive`, rather than Codex's `$skill-name`
+syntax. For a combined import, use `/yoto-import` followed by your selected
+titles, exact Drive URLs/IDs, and paths. For a long selection list, put the
+request in a local file and ask Pi to read it after invoking the template.
+
+The skills do **not** install a Google Drive integration. Pi must separately
+have authenticated Drive tools for file metadata with parents, child listings,
+and binary downloads. Its filesystem `read` cannot read URLs, and Ollama web
+search/fetch is not a Drive connector. Without that integration, Pi can validate
+already-local packages and use Yoto, but cannot complete a live Drive import.
+
+If Pi reports `model_not_supported`, choose a model offered by that provider
+using `/model`; a model available in Codex is not necessarily available through
+GitHub Copilot. Keep prompt text containing `$skill-name` out of unescaped
+double-quoted shell arguments, which expand dollar-prefixed names.
+
+The Pi package includes the two skills, their CLI sources, the shared schema,
+and the import prompt. It excludes the catalogue website, generated packages,
+and runtime reports. Installing the Pi resources does not install each skill's
+Node dependencies; use the per-skill `npm ci` setup above when needed.
+
+To verify packaging locally, run `npm test` from the repository root. Pi
+integration tests are optional when Pi is absent. To run them against an
+installed Pi runtime as well:
+
+```bash
+PI_SKILLS_MODULE=/absolute/path/to/pi/dist/core/skills.js npm test
+```
+
 ### Discover a Drive playlist
 
 The Drive skill is restricted to:
