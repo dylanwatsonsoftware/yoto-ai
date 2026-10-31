@@ -18,27 +18,38 @@ const FAVOURITES_KEY = "yoto-catalogue-favourites";
 const THEME_KEY = "yoto-catalogue-theme";
 const LAYOUT_KEY = "yoto-catalogue-layout";
 const SEARCH_DEBOUNCE_MS = 150;
+const SEARCH_ANALYTICS_DEBOUNCE_MS = 800;
 const RESULTS_BATCH_SIZE = 50;
-export const KNOWN_COLLECTIONS = [
-  "Audiobooks",
-  "BBC",
-  "BrainBots",
-  "Disney",
-  "5 Minute",
-  "Christmas",
-  "Easter",
-  "Halloween",
-  "Marvel",
-  "Hogwarts",
-  "Yoto Originals",
-  "Yoto Collection",
-  "Yoto Classical",
-  "Soundscape",
-  "Tonies",
-  "Music"
-] as const;
 type Theme = "light" | "dark";
 type Layout = "gallery" | "list";
+type DiscoveryStats = {
+  available: boolean;
+  favorites: Array<{ value: string; count: number }>;
+  opens: Array<{ value: string; count: number }>;
+  searches: Array<{ value: string; count: number }>;
+  countries: Array<{ value: string; count: number }>;
+};
+
+function recordEvent(event: "favorite" | "open" | "search", value: string) {
+  void fetch("/api/analytics", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ event, value }),
+    keepalive: true
+  }).catch(() => undefined);
+}
+
+function concisePopularSearches(searches: DiscoveryStats["searches"]) {
+  return searches.filter((search) => {
+    const query = search.value.toLocaleLowerCase();
+    return !searches.some((other) => {
+      const longerQuery = other.value.toLocaleLowerCase();
+      return longerQuery.length > query.length &&
+        longerQuery.includes(query) &&
+        other.count >= search.count;
+    });
+  });
+}
 
 export function shouldShowIncompleteNotice(
   scanComplete: boolean,
@@ -213,6 +224,7 @@ function DetailDialog({
               href={album.driveUrl}
               target="_blank"
               rel="noreferrer"
+              onClick={() => recordEvent("open", album.id)}
             >
               Open in Google Drive
             </a>
@@ -306,11 +318,13 @@ function FavouriteButton({
 export default function App({ catalogue }: { catalogue: Catalogue }) {
   const [state, setState] = useState<CatalogueQuery>(() => ({
     ...defaultFilters,
+    category: "all",
     ...readCatalogueQuery(window.location.search)
   }));
   const [searchInput, setSearchInput] = useState(state.query);
   const [resultLimit, setResultLimit] = useState(RESULTS_BATCH_SIZE);
   const [favourites, setFavourites] = useState<string[]>(readFavourites);
+  const [discoveryStats, setDiscoveryStats] = useState<DiscoveryStats | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
   const [theme, setTheme] = useState<Theme>(() =>
@@ -321,11 +335,18 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
   );
   const folderScrollPositions = useRef(new Map<string, number>());
   const pendingScrollFolder = useRef<string | null>(null);
+  const lastRecordedSearch = useRef("");
+  const lastOpenedAlbum = useRef<string | undefined>(undefined);
   const showFavourites = state.view === "favourites";
   const favouriteIds = useMemo(() => new Set(favourites), [favourites]);
   const favouriteAlbums = useMemo(
     () => catalogue.albums.filter((album) => favouriteIds.has(album.id)),
     [catalogue.albums, favouriteIds]
+  );
+  const categories = useMemo(
+    () => [...new Set(catalogue.albums.flatMap((album) => album.categories ?? []))]
+      .sort((left, right) => left.localeCompare(right)),
+    [catalogue.albums]
   );
   const searchIndex = useMemo(
     () => buildCatalogueSearchIndex(catalogue),
@@ -337,7 +358,27 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
       ? filtered.filter((album) => favouriteIds.has(album.id))
       : filtered;
   }, [catalogue, favouriteIds, searchIndex, showFavourites, state]);
-  const browseMode = !state.query.trim() && !showFavourites;
+  const trendingAlbums = useMemo(() => {
+    const counts = new Map<string, { favorites: number; opens: number }>();
+    for (const { value, count } of discoveryStats?.favorites ?? []) {
+      counts.set(value, { favorites: count, opens: counts.get(value)?.opens ?? 0 });
+    }
+    for (const { value, count } of discoveryStats?.opens ?? []) {
+      counts.set(value, { favorites: counts.get(value)?.favorites ?? 0, opens: count });
+    }
+    return [...counts].flatMap(([id, activity]) => {
+      const album = catalogue.albums.find((item) => item.id === id);
+      return album ? [{
+        album,
+        ...activity,
+        total: activity.favorites + activity.opens
+      }] : [];
+    })
+      .sort((left, right) => right.total - left.total)
+      .slice(0, 4);
+  }, [catalogue.albums, discoveryStats]);
+  const popularSearches = concisePopularSearches(discoveryStats?.searches ?? []);
+  const browseMode = !state.category && !state.query.trim() && !showFavourites;
   const currentFolder =
     state.collection === "all"
       ? undefined
@@ -390,6 +431,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
     state.collection !== "all" ||
     state.cover !== "all" ||
     state.depth !== "all" ||
+    Boolean(state.category && state.category !== "all") ||
     state.includeOtherLanguages === true;
   const supportsCompositorSearchTransitions =
     typeof Element.prototype.animate === "function" &&
@@ -445,6 +487,41 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
   }, [searchInput]);
 
   useEffect(() => {
+    const query = state.query.trim();
+    if (!query) {
+      lastRecordedSearch.current = "";
+      return;
+    }
+    if (query.length < 2 || albums.length === 0 || query === lastRecordedSearch.current) return;
+    const timeout = window.setTimeout(() => {
+      lastRecordedSearch.current = query;
+      recordEvent("search", query.slice(0, 120));
+    }, SEARCH_ANALYTICS_DEBOUNCE_MS);
+    return () => window.clearTimeout(timeout);
+  }, [albums.length, state.query]);
+
+  useEffect(() => {
+    let active = true;
+    void fetch("/api/analytics")
+      .then((response) => response.ok ? response.json() as Promise<DiscoveryStats> : null)
+      .then((stats) => {
+        if (active && stats?.available && (stats.favorites.length + stats.opens.length + stats.searches.length + stats.countries.length > 0)) {
+          setDiscoveryStats(stats);
+        }
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (state.selected && state.selected !== lastOpenedAlbum.current) {
+      lastOpenedAlbum.current = state.selected;
+      recordEvent("open", state.selected);
+    }
+    if (!state.selected) lastOpenedAlbum.current = undefined;
+  }, [state.selected]);
+
+  useEffect(() => {
     setResultLimit(RESULTS_BATCH_SIZE);
   }, [
     showFavourites,
@@ -481,6 +558,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
     const restoreFromHistory = () => {
       const restored = {
         ...defaultFilters,
+        category: "all",
         ...readCatalogueQuery(window.location.search)
       };
       setSearchInput(restored.query);
@@ -504,11 +582,10 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
   }, [layout]);
 
   const toggleFavourite = (album: Album) => {
-    setFavourites((current) =>
-      current.includes(album.id)
-        ? current.filter((id) => id !== album.id)
-        : [...current, album.id]
-    );
+    if (!favourites.includes(album.id)) recordEvent("favorite", album.id);
+    setFavourites((current) => current.includes(album.id)
+      ? current.filter((id) => id !== album.id)
+      : [...current, album.id]);
   };
 
   const update = <K extends keyof CatalogueQuery>(
@@ -529,21 +606,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
   const navigateToFolder = (collection: string) => {
     folderScrollPositions.current.set(state.collection, window.scrollY);
     pendingScrollFolder.current = collection;
-    navigate({ ...state, collection, selected: undefined });
-  };
-
-  const searchKnownCollection = (query: string) => {
-    const active =
-      searchInput.trim().toLocaleLowerCase() === query.toLocaleLowerCase();
-    const nextQuery = active ? "" : query;
-    setSearchWithTransition(nextQuery);
-    navigate({
-      ...state,
-      query: nextQuery,
-      collection: "all",
-      view: undefined,
-      selected: undefined
-    });
+    navigate({ ...state, category: undefined, collection, selected: undefined });
   };
 
   const clearSearch = () => {
@@ -582,7 +645,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
           <p>
             <span>Playlists</span> {catalogue.stats.albums}
             <b aria-hidden="true"> · </b>
-            <span>Collections</span> {catalogue.stats.collections}
+            <span>Categories</span> {categories.length}
           </p>
         </div>
       </header>
@@ -609,7 +672,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
                 type="search"
                 value={searchInput}
                 onChange={(event) => setSearchWithTransition(event.target.value)}
-                placeholder="Title, folder, collection or track…"
+                placeholder="Playlist, category, or track…"
               />
               {searchInput && (
                 <button
@@ -623,28 +686,62 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
               )}
             </div>
           </label>
+          {popularSearches.length ? (
+            <div className="community-searches" aria-label="Popular searches">
+              <span className="community-searches__label"><span aria-hidden="true">⌕</span> Popular</span>
+              <div className="community-searches__list">
+                {popularSearches.slice(0, 5).map(({ value, count }) => (
+                  <button key={value} type="button" onClick={() => {
+                    setSearchInput(value);
+                    navigate({ ...state, query: value, category: "all", collection: "all", selected: undefined });
+                  }}>
+                    {value}<small>{count}</small>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <nav
-            className="known-collections"
-            aria-label="Known collections"
+            className="known-collections category-nav"
+            aria-label="Playlist categories"
           >
-            <span className="known-collections__label">Known collections</span>
+            <span className="known-collections__label">Browse by category</span>
             <div className="known-collections__list">
-              {KNOWN_COLLECTIONS.map((collection) => {
-                const active =
-                  searchInput.trim().toLocaleLowerCase() ===
-                  collection.toLocaleLowerCase();
+              {["all", ...categories].map((category) => {
+                const active = (state.category ?? "all") === category;
                 return (
                   <button
-                    key={collection}
+                    key={category}
                     type="button"
                     aria-pressed={active}
                     className={active ? "known-collections__active" : ""}
-                    onClick={() => searchKnownCollection(collection)}
+                    onClick={() => {
+                      setSearchInput("");
+                      navigate({ ...state, category, query: "", collection: "all", view: undefined, selected: undefined });
+                    }}
                   >
-                    {collection}
+                    {category === "all" ? "All playlists" : category}
                   </button>
                 );
               })}
+              <button
+                type="button"
+                aria-pressed={state.cover === "available"}
+                className={state.cover === "available" ? "known-collections__active" : ""}
+                onClick={() => {
+                  setSearchInput("");
+                  navigate({
+                    ...state,
+                    cover: state.cover === "available" ? "all" : "available",
+                    query: "",
+                    collection: "all",
+                    view: undefined,
+                    selected: undefined
+                  });
+                }}
+              >
+                <span aria-hidden="true">▧</span> With artwork
+              </button>
             </div>
           </nav>
           <div className="discovery__toolbar">
@@ -686,7 +783,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
                   </select>
                 </label>
                 <label>
-                  <span>Collection</span>
+                  <span>Location</span>
                   <select value={state.collection} onChange={(event) => update("collection", event.target.value)}>
                     <option value="all">All collections</option>
                     {catalogue.collections
@@ -741,6 +838,26 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
             </details>
           </div>
         </section>
+
+        {trendingAlbums.length > 0 && !searchInput.trim() && !showFavourites &&
+          (state.category === "all" || !state.category) && state.collection === "all" && (
+          <section className="community-trending" aria-label="Trending playlists this week">
+            <h2><span aria-hidden="true">✦</span> Trending this week</h2>
+            <div className="community-trending__list">
+              {trendingAlbums.map(({ album, favorites: saves, opens }) => (
+                <button key={album.id} type="button" onClick={() => navigate({ ...state, selected: album.id })}>
+                  <span className="community-trending__cover">
+                    {album.cover ? <img src={`/catalogue/${album.cover.path}`} alt="" /> : <span aria-hidden="true">♫</span>}
+                  </span>
+                  <span className="community-trending__info">
+                    <strong>{album.title}</strong>
+                    <small>{saves > 0 && <span>♥ {saves}</span>}{saves > 0 && opens > 0 && " · "}{opens > 0 && <span>↗ {opens}</span>}</small>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
 
         {browseMode && (
           <nav className="folder-breadcrumbs" aria-label="Folder location">
@@ -820,6 +937,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
                   setSearchInput("");
                   setState({
                     ...defaultFilters,
+                    category: "all",
                     ...(showFavourites ? { view: "favourites" as const } : {})
                   });
                 }}
@@ -885,7 +1003,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
                       <h3>{album.title}</h3>
                     </div>
                     <p className="folder-subtitle">
-                      Folder: {playlistFolder(album, catalogue)}
+                      {(album.categories ?? []).join(" · ") || playlistFolder(album, catalogue)}
                     </p>
                     <div className="album-card__meta">
                       {album.kind === "expanded" && (

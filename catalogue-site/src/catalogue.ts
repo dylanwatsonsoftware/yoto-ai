@@ -35,6 +35,7 @@ export interface Album {
   checksum: string | null;
   cover: Cover | null;
   tracks: Track[];
+  categories?: string[];
 }
 
 export interface Collection {
@@ -72,6 +73,7 @@ export interface CatalogueFilters {
   depth: DepthFilter;
   sort: SortOrder;
   includeOtherLanguages?: boolean;
+  category?: string;
 }
 
 export interface CatalogueQuery extends CatalogueFilters {
@@ -120,7 +122,8 @@ export function validateCatalogue(value: unknown): Catalogue {
       typeof album.title !== "string" ||
       !["archive", "expanded"].includes(album.kind) ||
       !Array.isArray(album.pathSegments) ||
-      !Array.isArray(album.tracks)
+      !Array.isArray(album.tracks) ||
+      (album.categories !== undefined && !Array.isArray(album.categories))
     ) {
       throw new Error("Catalogue contains a malformed album");
     }
@@ -189,6 +192,7 @@ export function filterAlbums(
           !isOtherLanguagePath(album.pathSegments)) &&
         matchesQuery(searchIndex.get(album.id) ?? "", terms) &&
         (filters.kind === "all" || album.kind === filters.kind) &&
+        (!filters.category || filters.category === "all" || album.categories?.includes(filters.category)) &&
         (filters.collection === "all" ||
           album.parentCollectionId === filters.collection ||
           album.pathSegments.some((part) => part.id === filters.collection)) &&
@@ -250,6 +254,7 @@ export function readCatalogueQuery(
     depth: oneOf(params.get("depth"), ["all", "1", "2", "3+"], "all"),
     sort: oneOf(params.get("sort"), ["title", "path", "modified"], "title"),
     includeOtherLanguages: params.get("languages") === "all",
+    ...(params.get("category") ? { category: params.get("category")! } : {}),
     ...(view ? { view } : {}),
     ...(selected ? { selected } : {})
   };
@@ -264,6 +269,7 @@ export function writeCatalogueQuery(state: CatalogueQuery): string {
   if (state.depth !== "all") params.set("depth", state.depth);
   if (state.sort !== "title") params.set("sort", state.sort);
   if (state.includeOtherLanguages) params.set("languages", "all");
+  if (state.category && state.category !== "all") params.set("category", state.category);
   if (state.view === "favourites") params.set("view", "favourites");
   if (state.selected) params.set("album", state.selected);
   return params.toString();
