@@ -39,6 +39,18 @@ function recordEvent(event: "favorite" | "open" | "search", value: string) {
   }).catch(() => undefined);
 }
 
+function concisePopularSearches(searches: DiscoveryStats["searches"]) {
+  return searches.filter((search) => {
+    const query = search.value.toLocaleLowerCase();
+    return !searches.some((other) => {
+      const longerQuery = other.value.toLocaleLowerCase();
+      return longerQuery.length > query.length &&
+        longerQuery.includes(query) &&
+        other.count >= search.count;
+    });
+  });
+}
+
 export function shouldShowIncompleteNotice(
   scanComplete: boolean,
   hostname: string
@@ -365,6 +377,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
       .sort((left, right) => right.total - left.total)
       .slice(0, 4);
   }, [catalogue.albums, discoveryStats]);
+  const popularSearches = concisePopularSearches(discoveryStats?.searches ?? []);
   const browseMode = !state.category && !state.query.trim() && !showFavourites;
   const currentFolder =
     state.collection === "all"
@@ -673,11 +686,11 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
               )}
             </div>
           </label>
-          {discoveryStats?.searches.length ? (
+          {popularSearches.length ? (
             <div className="community-searches" aria-label="Popular searches">
               <span className="community-searches__label"><span aria-hidden="true">⌕</span> Popular</span>
               <div className="community-searches__list">
-                {discoveryStats.searches.slice(0, 5).map(({ value, count }) => (
+                {popularSearches.slice(0, 5).map(({ value, count }) => (
                   <button key={value} type="button" onClick={() => {
                     setSearchInput(value);
                     navigate({ ...state, query: value, category: "all", collection: "all", selected: undefined });
