@@ -79,6 +79,7 @@ export interface PublicAlbum {
   checksum: string | null;
   cover: PublicCover | null;
   tracks: PublicTrack[];
+  categories: string[];
 }
 
 export interface PublicCollection {
@@ -146,6 +147,21 @@ function trackTitle(item: DriveSnapshotItem): string {
     .trim();
 }
 
+function categoriesFor(album: DriveSnapshotItem, chain: DriveSnapshotItem[]): string[] {
+  const names = chain.map((item) => item.title.normalize("NFKD").toLocaleLowerCase());
+  if (names.some((name) => /(^|[^a-z])_audiobooks?/.test(name))) return ["Audiobooks"];
+  if (names.some((name) => /(^|[^a-z])_music/.test(name))) return ["Music"];
+  if (names.some((name) => /(^|[^a-z])_podcasts?/.test(name))) return ["Podcasts"];
+  if (names.some((name) => /_episode audio/.test(name))) return ["Episodes"];
+  if (names.some((name) => /(^|[^a-z])_tonies/.test(name))) return ["Tonies"];
+  if (names.some((name) => /other language content|french|spanish|cantonese|italian/.test(name))) return ["Other languages"];
+  const content = `${album.title} ${chain.map((item) => item.title).join(" ")}`.toLocaleLowerCase();
+  if (/christmas|easter|halloween/.test(content)) return ["Seasonal"];
+  if (/bedtime|lullab|sleep|relax|soundscape/.test(content)) return ["Sleep & calm"];
+  if (/phonics|science|brainbots|learning|educational/.test(content)) return ["Learning"];
+  return ["Stories & collections"];
+}
+
 function exists(path: string): Promise<boolean> {
   return access(path).then(
     () => true,
@@ -191,6 +207,50 @@ function descendantsOf(
     if (isFolder(item)) pending.push(...(children.get(item.id) ?? []));
   }
   return result;
+}
+
+export function compareCatalogueSnapshot(
+  items: DriveSnapshotItem[],
+  existingAlbums: Array<{ id: string; title: string }>
+): { added: Array<{ id: string; title: string; path: string }>; removed: Array<{ id: string; title: string }> } {
+  const byId = new Map(items.map((item) => [item.id, item]));
+  if (!byId.has(IDEA_EXCHANGE_ROOT_ID)) {
+    throw new Error("Drive snapshot is missing the configured root");
+  }
+  const parents = new Map(items.map((item) => [
+    item.id,
+    item.id === IDEA_EXCHANGE_ROOT_ID ? [] : [item.parentId]
+  ]));
+  for (const item of items) assertUnderIdeaExchangeRoot(item.id, parents);
+  const children = new Map<string, DriveSnapshotItem[]>();
+  for (const item of items) {
+    if (item.id === IDEA_EXCHANGE_ROOT_ID) continue;
+    const siblings = children.get(item.parentId) ?? [];
+    siblings.push(item);
+    children.set(item.parentId, siblings);
+  }
+  const expanded = items.filter((item) => {
+    if (!isFolder(item) || item.id === IDEA_EXCHANGE_ROOT_ID || technicalFolders.has(item.title.toLocaleLowerCase())) return false;
+    const descendants = descendantsOf(item.id, children);
+    if (!descendants.some(isAudio)) return false;
+    return !(children.get(item.id) ?? []).some((child) =>
+      isFolder(child) && !technicalFolders.has(child.title.toLocaleLowerCase()) && descendantsOf(child.id, children).some(isAudio)
+    );
+  });
+  const discovered = new Map(
+    [...items.filter(isArchive), ...expanded].map((item) => [item.id, item])
+  );
+  const existing = new Map(existingAlbums.map((album) => [album.id, album.title]));
+  return {
+    added: [...discovered.values()]
+      .filter((item) => !existing.has(item.id))
+      .map((item) => ({ id: item.id, title: basename(item.title, extname(item.title)), path: item.path }))
+      .sort((a, b) => collator.compare(a.title, b.title)),
+    removed: [...existing]
+      .filter(([id]) => !discovered.has(id))
+      .map(([id, title]) => ({ id, title }))
+      .sort((a, b) => collator.compare(a.title, b.title))
+  };
 }
 
 function selectCovers(
@@ -476,7 +536,8 @@ export async function buildPublicCatalogue(input: {
         modifiedTime: album.modifiedTime,
         checksum: album.checksum,
         cover,
-        tracks
+        tracks,
+        categories: categoriesFor(album, chain)
       });
     }
 
@@ -521,6 +582,14 @@ export async function buildPublicCatalogue(input: {
     await writeFile(
       join(stage, "catalogue.json"),
       `${JSON.stringify(catalogue, null, 2)}\n`
+    );
+    await writeFile(
+      join(stage, "album-ids.json"),
+      `${JSON.stringify(albums.map(({ id, title, pathSegments, tracks }) => ({
+        id,
+        title,
+        searchable: [title, ...pathSegments.map((segment) => segment.name), ...tracks.map((track) => track.title)].join(" ")
+      })))}\n`
     );
     await swapDirectory(stage, input.outputDirectory);
     return catalogue;
