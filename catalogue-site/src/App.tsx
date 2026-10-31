@@ -707,8 +707,8 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
           >
             <span className="known-collections__label">Browse by category</span>
             <div className="known-collections__list">
-              {["all", ...categories].map((category) => {
-                const active = (state.category ?? "all") === category;
+              {categories.map((category) => {
+                const active = state.category === category;
                 return (
                   <button
                     key={category}
@@ -717,10 +717,10 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
                     className={active ? "known-collections__active" : ""}
                     onClick={() => {
                       setSearchInput("");
-                      navigate({ ...state, category, query: "", collection: "all", view: undefined, selected: undefined });
+                      navigate({ ...state, category: active ? "all" : category, query: "", collection: "all", view: undefined, selected: undefined });
                     }}
                   >
-                    {category === "all" ? "All playlists" : category}
+                    {category}
                   </button>
                 );
               })}
@@ -745,23 +745,17 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
             </div>
           </nav>
           <div className="discovery__toolbar">
-            <div className="view-switcher" aria-label="Catalogue view">
-              <button
-                type="button"
-                className={!showFavourites ? "view-switcher__active" : ""}
-                aria-pressed={!showFavourites}
-                onClick={() =>
-                  navigate({ ...state, view: undefined, selected: undefined })
-                }
-              >
-                All playlists
-              </button>
+            <div className="view-switcher" aria-label="Favourite filter">
               <button
                 type="button"
                 className={showFavourites ? "view-switcher__active" : ""}
                 aria-pressed={showFavourites}
                 onClick={() =>
-                  navigate({ ...state, view: "favourites", selected: undefined })
+                  navigate({
+                    ...state,
+                    view: showFavourites ? undefined : "favourites",
+                    selected: undefined
+                  })
                 }
               >
                 <span aria-hidden="true">♥</span>{" "}
