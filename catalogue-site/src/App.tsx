@@ -651,7 +651,6 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
           onClick={showHome}
         >
           <span className="eyebrow">MYO Idea Exchange</span>
-          <h1>Playlist catalogue</h1>
           <p>
             <span>Playlists</span> {catalogue.stats.albums}
             <b aria-hidden="true"> · </b>
