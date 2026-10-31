@@ -603,6 +603,11 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
     setState(next);
   };
 
+  const showHome = () => {
+    setSearchInput("");
+    navigate({ ...defaultFilters, category: "all" });
+  };
+
   const navigateToFolder = (collection: string) => {
     folderScrollPositions.current.set(state.collection, window.scrollY);
     pendingScrollFolder.current = collection;
@@ -639,7 +644,12 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
           <span aria-hidden="true">{theme === "dark" ? "☀" : "☾"}</span>
           {theme === "dark" ? "Light" : "Dark"}
         </button>
-        <div>
+        <button
+          type="button"
+          className="hero-home"
+          aria-label="Clear all filters and show the full catalogue"
+          onClick={showHome}
+        >
           <span className="eyebrow">MYO Idea Exchange</span>
           <h1>Playlist catalogue</h1>
           <p>
@@ -647,7 +657,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
             <b aria-hidden="true"> · </b>
             <span>Categories</span> {categories.length}
           </p>
-        </div>
+        </button>
       </header>
 
       <main>
