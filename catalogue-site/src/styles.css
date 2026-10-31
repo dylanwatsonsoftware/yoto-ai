@@ -99,6 +99,24 @@ select:focus-visible {
   border-radius: 50%;
 }
 
+.hero-home {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  padding: 0;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.hero-home:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 6px;
+  border-radius: 3px;
+}
+
 .theme-toggle {
   position: absolute;
   z-index: 3;
