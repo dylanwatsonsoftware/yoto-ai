@@ -13,3 +13,5 @@ portable-packages
 imports/
 artwork/
 previews/
+.codex-attachments
+import-reports
