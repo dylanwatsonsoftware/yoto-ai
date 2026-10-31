@@ -331,7 +331,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
     window.localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark"
   );
   const [layout, setLayout] = useState<Layout>(() =>
-    window.localStorage.getItem(LAYOUT_KEY) === "gallery" ? "gallery" : "list"
+    window.localStorage.getItem(LAYOUT_KEY) === "list" ? "list" : "gallery"
   );
   const folderScrollPositions = useRef(new Map<string, number>());
   const pendingScrollFolder = useRef<string | null>(null);
