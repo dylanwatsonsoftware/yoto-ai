@@ -724,24 +724,6 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
                   </button>
                 );
               })}
-              <button
-                type="button"
-                aria-pressed={state.cover === "available"}
-                className={state.cover === "available" ? "known-collections__active" : ""}
-                onClick={() => {
-                  setSearchInput("");
-                  navigate({
-                    ...state,
-                    cover: state.cover === "available" ? "all" : "available",
-                    query: "",
-                    collection: "all",
-                    view: undefined,
-                    selected: undefined
-                  });
-                }}
-              >
-                <span aria-hidden="true">▧</span> With artwork
-              </button>
             </div>
           </nav>
           <div className="discovery__toolbar">
@@ -760,6 +742,20 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
               >
                 <span aria-hidden="true">♥</span>{" "}
                 View {favourites.length} {favourites.length === 1 ? "favourite" : "favourites"}
+              </button>
+              <button
+                type="button"
+                className={state.cover === "available" ? "view-switcher__active" : ""}
+                aria-pressed={state.cover === "available"}
+                onClick={() =>
+                  navigate({
+                    ...state,
+                    cover: state.cover === "available" ? "all" : "available",
+                    selected: undefined
+                  })
+                }
+              >
+                <span aria-hidden="true">▧</span> With artwork
               </button>
             </div>
             <details

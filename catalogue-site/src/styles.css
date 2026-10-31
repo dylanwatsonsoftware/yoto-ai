@@ -226,10 +226,6 @@ main {
   cursor: pointer;
 }
 
-.view-switcher button:last-child {
-  margin-left: auto;
-}
-
 .view-switcher .view-switcher__active {
   color: #fff;
   background: var(--purple);
