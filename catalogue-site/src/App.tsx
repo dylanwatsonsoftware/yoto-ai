@@ -724,6 +724,24 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
                   </button>
                 );
               })}
+              <button
+                type="button"
+                aria-pressed={state.cover === "available"}
+                className={state.cover === "available" ? "known-collections__active" : ""}
+                onClick={() => {
+                  setSearchInput("");
+                  navigate({
+                    ...state,
+                    cover: state.cover === "available" ? "all" : "available",
+                    query: "",
+                    collection: "all",
+                    view: undefined,
+                    selected: undefined
+                  });
+                }}
+              >
+                <span aria-hidden="true">▧</span> With artwork
+              </button>
             </div>
           </nav>
           <div className="discovery__toolbar">
