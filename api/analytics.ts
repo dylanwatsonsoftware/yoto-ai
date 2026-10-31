@@ -1,4 +1,4 @@
-import albumIndex from "../public/catalogue/album-ids.json";
+import albumIndex from "../catalogue-site/public/catalogue/album-ids.json";
 
 type Request = {
   method?: string;
