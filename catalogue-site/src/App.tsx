@@ -727,7 +727,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
             </div>
           </nav>
           <div className="discovery__toolbar">
-            <div className="view-switcher" aria-label="Favourite filter">
+            <div className="view-switcher" aria-label="Catalogue filters">
               <button
                 type="button"
                 className={showFavourites ? "view-switcher__active" : ""}
@@ -755,7 +755,11 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
                   })
                 }
               >
-                <span aria-hidden="true">▧</span> With artwork
+                <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+                  <rect x="1.5" y="1.5" width="13" height="13" rx="2" />
+                  <circle cx="5.25" cy="5.25" r="1.25" />
+                  <path d="m2 11 3.5-3 2.5 2 2-1.5 4 3.5" />
+                </svg>{" "}With artwork
               </button>
             </div>
             <details
