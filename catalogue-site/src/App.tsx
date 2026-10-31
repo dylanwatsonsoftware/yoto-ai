@@ -18,6 +18,7 @@ const FAVOURITES_KEY = "yoto-catalogue-favourites";
 const THEME_KEY = "yoto-catalogue-theme";
 const LAYOUT_KEY = "yoto-catalogue-layout";
 const SEARCH_DEBOUNCE_MS = 150;
+const SEARCH_ANALYTICS_DEBOUNCE_MS = 800;
 const RESULTS_BATCH_SIZE = 50;
 type Theme = "light" | "dark";
 type Layout = "gallery" | "list";
@@ -345,6 +346,25 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
       ? filtered.filter((album) => favouriteIds.has(album.id))
       : filtered;
   }, [catalogue, favouriteIds, searchIndex, showFavourites, state]);
+  const trendingAlbums = useMemo(() => {
+    const counts = new Map<string, { favorites: number; opens: number }>();
+    for (const { value, count } of discoveryStats?.favorites ?? []) {
+      counts.set(value, { favorites: count, opens: counts.get(value)?.opens ?? 0 });
+    }
+    for (const { value, count } of discoveryStats?.opens ?? []) {
+      counts.set(value, { favorites: counts.get(value)?.favorites ?? 0, opens: count });
+    }
+    return [...counts].flatMap(([id, activity]) => {
+      const album = catalogue.albums.find((item) => item.id === id);
+      return album ? [{
+        album,
+        ...activity,
+        total: activity.favorites + activity.opens
+      }] : [];
+    })
+      .sort((left, right) => right.total - left.total)
+      .slice(0, 4);
+  }, [catalogue.albums, discoveryStats]);
   const browseMode = !state.category && !state.query.trim() && !showFavourites;
   const currentFolder =
     state.collection === "all"
@@ -455,12 +475,16 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
 
   useEffect(() => {
     const query = state.query.trim();
-    if (query.length >= 2 && albums.length > 0 && query !== lastRecordedSearch.current) {
+    if (!query) {
+      lastRecordedSearch.current = "";
+      return;
+    }
+    if (query.length < 2 || albums.length === 0 || query === lastRecordedSearch.current) return;
+    const timeout = window.setTimeout(() => {
       lastRecordedSearch.current = query;
       recordEvent("search", query.slice(0, 120));
-    } else if (!query) {
-      lastRecordedSearch.current = "";
-    }
+    }, SEARCH_ANALYTICS_DEBOUNCE_MS);
+    return () => window.clearTimeout(timeout);
   }, [albums.length, state.query]);
 
   useEffect(() => {
@@ -623,51 +647,6 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
             is complete.
           </p>
         )}
-        {discoveryStats && (
-          <section className="community-discovery" aria-label="Popular with the community">
-            <div className="community-discovery__heading">
-              <span className="eyebrow">Community picks · this week</span>
-              <h2>Popular around the world</h2>
-            </div>
-            <div className="community-discovery__columns">
-              <section aria-label="Most favourited playlists">
-                <h3>Most saved</h3>
-                {discoveryStats.favorites.slice(0, 4).map(({ value, count }) => {
-                  const album = catalogue.albums.find((item) => item.id === value);
-                  return album ? <button key={value} type="button" onClick={() => navigate({ ...state, selected: value })}>
-                    <span>{album.title}</span><small>{count} actions</small>
-                  </button> : null;
-                })}
-              </section>
-              <section aria-label="Most opened playlists">
-                <h3>Most opened</h3>
-                {discoveryStats.opens.slice(0, 4).map(({ value, count }) => {
-                  const album = catalogue.albums.find((item) => item.id === value);
-                  return album ? <button key={value} type="button" onClick={() => navigate({ ...state, selected: value })}>
-                    <span>{album.title}</span><small>{count} opens</small>
-                  </button> : null;
-                })}
-              </section>
-              <section aria-label="Popular searches">
-                <h3>Popular searches</h3>
-                {discoveryStats.searches.slice(0, 4).map(({ value, count }) =>
-                  <button key={value} type="button" onClick={() => {
-                    setSearchInput(value);
-                    navigate({ ...state, query: value, category: "all", collection: "all", selected: undefined });
-                  }}><span>{value}</span><small>{count} searches</small></button>
-                )}
-              </section>
-              <section aria-label="Community activity by country">
-                <h3>Activity by country</h3>
-                <div className="community-discovery__countries">
-                  {discoveryStats.countries.slice(0, 8).map(({ value, count }) =>
-                    <span key={value}>{value === "unknown" ? "Other" : value}<small>{count}</small></span>
-                  )}
-                </div>
-              </section>
-            </div>
-          </section>
-        )}
         <section
           className={`discovery ${filtersOpen ? "discovery--filters-open" : ""}`}
           aria-label="Catalogue filters"
@@ -694,6 +673,21 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
               )}
             </div>
           </label>
+          {discoveryStats?.searches.length ? (
+            <div className="community-searches" aria-label="Popular searches">
+              <span className="community-searches__label"><span aria-hidden="true">⌕</span> Popular</span>
+              <div className="community-searches__list">
+                {discoveryStats.searches.slice(0, 5).map(({ value, count }) => (
+                  <button key={value} type="button" onClick={() => {
+                    setSearchInput(value);
+                    navigate({ ...state, query: value, category: "all", collection: "all", selected: undefined });
+                  }}>
+                    {value}<small>{count}</small>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <nav
             className="known-collections category-nav"
             aria-label="Playlist categories"
@@ -813,6 +807,26 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
             </details>
           </div>
         </section>
+
+        {trendingAlbums.length > 0 && !searchInput.trim() && !showFavourites &&
+          (state.category === "all" || !state.category) && state.collection === "all" && (
+          <section className="community-trending" aria-label="Trending playlists this week">
+            <h2><span aria-hidden="true">✦</span> Trending this week</h2>
+            <div className="community-trending__list">
+              {trendingAlbums.map(({ album, favorites: saves, opens }) => (
+                <button key={album.id} type="button" onClick={() => navigate({ ...state, selected: album.id })}>
+                  <span className="community-trending__cover">
+                    {album.cover ? <img src={`/catalogue/${album.cover.path}`} alt="" /> : <span aria-hidden="true">♫</span>}
+                  </span>
+                  <span className="community-trending__info">
+                    <strong>{album.title}</strong>
+                    <small>{saves > 0 && <span>♥ {saves}</span>}{saves > 0 && opens > 0 && " · "}{opens > 0 && <span>↗ {opens}</span>}</small>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
 
         {browseMode && (
           <nav className="folder-breadcrumbs" aria-label="Folder location">
