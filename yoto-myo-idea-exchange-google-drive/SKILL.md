@@ -7,6 +7,22 @@ description: Read-only exact-ID import and catalogue search from the single Yoto
 
 Search only Drive root `12ueGfirgSd21B7ShXZiATmrZCl3J4OqI`. Never search another Drive location and never modify Drive.
 
+## Runtime capabilities
+
+This skill provides local catalogue/package commands, not Google Drive access.
+Before importing, verify that the active agent has a supported authenticated
+Drive integration for exact-ID metadata (including parents), child listings,
+and binary downloads. Pi's built-in `read` reads local files; passing it a Drive
+URL will fail. Generic web search/fetch does not provide the required Drive
+metadata or downloads. If Drive access is missing, report that capability gap
+once and continue only independent local/Yoto preparation. Do not invent a
+connector or substitute public HTML scraping.
+
+Read this file before executing its workflow. In Pi, load it with
+`/skill:yoto-myo-idea-exchange-google-drive`; `$skill-name` is not Pi's explicit
+skill-loading command. Check bundled CLI source when syntax is uncertain:
+there is no `index find` command and no catalogue command that fetches Drive.
+
 ## Authorization and workflow selection
 
 Treat an explicit request to use this skill as authorization for its routine
@@ -136,18 +152,31 @@ public catalogue fields.
 2. Write the complete connector snapshot to `/tmp/drive-items.json`. Include
    only `id`, `parentId`, `path`, `title`, `mimeType`, `size`, `modifiedTime`,
    and checksum. Include the root folder itself.
-3. Treat `.zip` and `.7z` files as opaque albums. Never download or inspect
+3. When the user asks only for an update check, compare the complete snapshot
+   with the published catalogue without downloading covers or changing either
+   catalogue:
+
+```bash
+npm run catalogue -- cache check \
+  --input /tmp/drive-items.json \
+  --catalogue ../catalogue-site/public/catalogue/catalogue.json \
+  --json
+```
+
+The command rejects incomplete scans and reports added and removed album IDs.
+For a refresh, continue with the export steps below.
+4. Treat `.zip` and `.7z` files as opaque albums. Never download or inspect
    their contents.
-4. Detect selected covers using the package precedence rules. For expanded
+5. Detect selected covers using the package precedence rules. For expanded
    albums, search all descendants recursively for `cover_image.*`, `cover.*`,
    then `folder.*`; if none exists, use a fallback only when the album has
    exactly one descendant image. Never guess between multiple fallback images.
    For archive albums, prefer an adjacent image with the same filename stem.
    Use a folder cover for an archive only when exactly one album is present in
    that folder. Keep archives opaque and report when no external cover exists.
-5. Download only selected cover files into `/tmp/drive-covers`, naming each
+6. Download only selected cover files into `/tmp/drive-covers`, naming each
    file `<DRIVE_ID>.<extension>`. Do not download audio.
-6. Export the versioned JSON and normalized WebP thumbnails atomically:
+7. Export the versioned JSON and normalized WebP thumbnails atomically:
 
 ```bash
 npm run catalogue -- cache build \
@@ -157,7 +186,7 @@ npm run catalogue -- cache build \
   --json
 ```
 
-7. Run both projects' tests, checks, and production build. Report album,
+8. Run both projects' tests, checks, and production build. Report album,
    collection, and cover counts. The generated cache is intended to be
    committed so Vercel can deploy it without Drive credentials.
 

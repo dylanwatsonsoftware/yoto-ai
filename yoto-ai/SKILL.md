@@ -7,6 +7,12 @@ description: Authenticate with Yoto, inspect a Make Your Own library, validate p
 
 Use the bundled TypeScript CLI as the deterministic boundary for Yoto authentication, reads, and playlist validation.
 
+In Pi, explicitly load these instructions with `/skill:yoto-ai`, or read the
+advertised local `SKILL.md` before running commands. `$yoto-ai` alone is not
+Pi's skill-loading command. Run the CLI from this skill's directory so its
+ignored `.env` and dependencies resolve correctly. This skill supplies Yoto
+access; it does not install or authenticate a Google Drive integration.
+
 ## Setup
 
 1. Require Node.js 22 or later.
@@ -50,7 +56,13 @@ Use JSON mode for orchestration. Never include command output containing persona
    - `playlist preview-repair-track-labels --input <dir> --card-id <id> --output <preview-file> --json`
    - `playlist preview-repair-song-layout --input <dir> --card-id <id> --chapter-key <key> --output <preview-file> --json`
    - `playlist apply --preview <file> --json`
-3. Validate every package and generate a preview before any upload. Before
+3. Check the normalized cover's byte size before freezing a preview. Converting
+   a supplied JPEG to PNG can produce a multi-megabyte upload that Yoto rejects
+   with HTTP 413. If needed, reduce that same artwork locally with preserved
+   aspect ratio (for example, a 600-pixel longest side) and verify the smaller
+   payload. Update the cover checksum before validation and preview; keep
+   supplied icons unchanged. Record the resizing in the consolidated preview.
+   Validate every package and generate a preview before any upload. Before
    every create preview, search the live Yoto library for exact and similar
    normalized titles.
 4. If a possible duplicate exists, stop and show every candidate title, card

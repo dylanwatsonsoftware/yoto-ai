@@ -9,6 +9,7 @@ import { spawn } from "node:child_process";
 import { assertUnderIdeaExchangeRoot } from "./layout.js";
 import {
   buildPublicCatalogue,
+  compareCatalogueSnapshot,
   type DriveSnapshotItem
 } from "./cache.js";
 import { mergeParentScan, type ParentScan } from "./scan.js";
@@ -123,6 +124,25 @@ async function main(): Promise<unknown> {
       outputDirectory: value(args, "--output"),
       scanComplete: complete
     });
+  }
+  if (args[0] === "cache" && args[1] === "check") {
+    const payload = JSON.parse(await readFile(value(args, "--input"), "utf8")) as
+      | DriveSnapshotItem[]
+      | { items: DriveSnapshotItem[]; complete?: boolean; incompleteWindows?: string[] };
+    if (Array.isArray(payload) || payload.complete !== true || (payload.incompleteWindows?.length ?? 0) > 0) {
+      throw new Error("A complete Drive snapshot is required to compare catalogue updates");
+    }
+    const catalogue = JSON.parse(await readFile(value(args, "--catalogue"), "utf8")) as {
+      scan?: { complete?: boolean };
+      albums?: Array<{ id: string; title: string }>;
+    };
+    if (catalogue.scan?.complete !== true || !Array.isArray(catalogue.albums)) {
+      throw new Error("The published catalogue must be complete and valid");
+    }
+    return {
+      checkedAt: new Date().toISOString(),
+      ...compareCatalogueSnapshot(payload.items, catalogue.albums)
+    };
   }
   throw new Error("Unknown command");
 }

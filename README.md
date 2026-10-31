@@ -22,7 +22,7 @@ contract, and a read-only catalogue website. Together they can:
 | [`yoto-ai`](./yoto-ai) | Authenticate with Yoto, inspect the library, detect possible duplicates, and publish a confirmed playlist package. |
 | [`yoto-myo-idea-exchange-google-drive`](./yoto-myo-idea-exchange-google-drive) | Read-only discovery, indexing, packaging, and website-cache export for the configured MYO Idea Exchange folder. |
 | [`spotdl-audio-import`](./spotdl-audio-import) | Resolve authorized Spotify links through `spotDL`, confirm the full batch once, and produce a portable playlist package. |
-| [`catalogue-site`](./catalogue-site) | Static Vite/React catalogue browser designed for deployment on Vercel. |
+| [`catalogue-site`](./catalogue-site) | Vercel-hosted Vite/React catalogue with category browsing and optional anonymous community aggregates. |
 | [`playlist-package-v1.schema.json`](./playlist-package-v1.schema.json) | Shared, versioned handoff contract used by the import and publishing skills. |
 
 ```mermaid
@@ -103,6 +103,34 @@ See [`yoto-ai/README.md`](./yoto-ai/README.md) for detailed authentication and
 recovery instructions.
 
 ## Common workflows
+
+### Use with Pi
+
+From this checkout, start `pi` and approve this project's resources when Pi
+asks, then run `/reload` in an already-open session. `.pi/settings.json` exposes
+both Yoto skills and `.pi/prompts/yoto-import.md` adds `/yoto-import`.
+For use from other directories, install this checkout as a Pi package:
+
+```bash
+pi install /absolute/path/to/yoto-skill
+```
+
+Pi explicitly loads skills with `/skill:yoto-ai` and
+`/skill:yoto-myo-idea-exchange-google-drive`, rather than Codex's `$skill-name`
+syntax. For a combined import, use `/yoto-import` followed by your selected
+titles, exact Drive URLs/IDs, and paths. For a long selection list, put the
+request in a local file and ask Pi to read it after invoking the template.
+
+The skills do **not** install a Google Drive integration. Pi must separately
+have authenticated Drive tools for file metadata with parents, child listings,
+and binary downloads. Its filesystem `read` cannot read URLs, and Ollama web
+search/fetch is not a Drive connector. Without that integration, Pi can validate
+already-local packages and use Yoto, but cannot complete a live Drive import.
+
+If Pi reports `model_not_supported`, choose a model offered by that provider
+using `/model`; a model available in Codex is not necessarily available through
+GitHub Copilot. Keep prompt text containing `$skill-name` out of unescaped
+double-quoted shell arguments, which expand dollar-prefixed names.
 
 ### Discover a Drive playlist
 
@@ -221,9 +249,37 @@ npm run dev
 For Vercel, create a project with `catalogue-site` as its root directory. The
 included `vercel.json` builds the static site into `dist`.
 
+The homepage groups albums into reader-friendly categories and can show
+community favourites, opens, searches, and favourite activity by country. To
+enable those sections, provision the free Upstash Redis database from the
+Vercel Marketplace and add `UPSTASH_REDIS_REST_URL` and
+`UPSTASH_REDIS_REST_TOKEN` to the Vercel project environment. If storage is not
+configured or temporarily unavailable, the catalogue remains usable and the
+community sections stay hidden. Only weekly aggregate counts are kept, with a
+90-day expiry; country counts below five and item/search counts below three
+are not shown. Country is derived from Vercel's country header, and visitor
+IPs are not stored by this feature.
+
+To check for albums missing from the public catalogue, use the connected Drive
+workflow to create a complete snapshot, then compare it without downloading
+covers or changing the website cache:
+
+```bash
+cd yoto-myo-idea-exchange-google-drive
+npm run catalogue -- cache check \
+  --input /tmp/drive-items.json \
+  --catalogue ../catalogue-site/public/catalogue/catalogue.json \
+  --json
+```
+
+The report lists newly discovered and no-longer-present album IDs and titles.
+The comparison is read-only; refreshing the public catalogue remains a
+separate reviewed step. Automated scheduled checks need a separately authorized
+Drive connection, which the static website does not have.
+
 > [!NOTE]
 > The generated website cache is intended to be committed. It contains an
-> explicit allowlist of album, folder, track-title, and cover metadata; owners,
+> explicit allowlist of album, folder, category, track-title, and cover metadata; owners,
 > email addresses, permissions, credentials, and account metadata are excluded.
 
 ## Playlist package
