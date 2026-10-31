@@ -1187,8 +1187,53 @@ footer {
   }
 
   .album-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .album-grid:not(.album-grid--list) .album-card__button {
+    border-radius: 12px;
+  }
+
+  .album-grid:not(.album-grid--list) .artwork {
+    aspect-ratio: 2 / 3;
+  }
+
+  .album-grid:not(.album-grid--list) .album-card > .favourite-button {
+    top: 6px;
+    right: 6px;
+    width: 28px;
+    height: 28px;
+  }
+
+  .album-grid:not(.album-grid--list) .favourite-button span {
+    font-size: 1rem;
+  }
+
+  .album-grid:not(.album-grid--list) .album-card__content {
+    padding: 8px 6px;
+  }
+
+  .album-grid:not(.album-grid--list) .album-card__type {
+    font-size: .55rem;
+  }
+
+  .album-grid:not(.album-grid--list) .album-card h3 {
+    display: -webkit-box;
+    overflow: hidden;
+    margin: 4px 0;
+    font-size: .83rem;
+    line-height: 1.15;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .album-grid:not(.album-grid--list) .folder-subtitle {
+    font-size: .64rem;
+  }
+
+  .album-grid:not(.album-grid--list) .album-card__meta {
+    display: none;
   }
 
   .results-heading {
