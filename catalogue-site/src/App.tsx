@@ -327,6 +327,9 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
   const [discoveryStats, setDiscoveryStats] = useState<DiscoveryStats | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackWebsite, setFeedbackWebsite] = useState("");
+  const [feedbackStatus, setFeedbackStatus] = useState<"idle" | "sending" | "sent" | "failed">("idle");
   const [theme, setTheme] = useState<Theme>(() =>
     window.localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark"
   );
@@ -348,6 +351,16 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
       .sort((left, right) => left.localeCompare(right)),
     [catalogue.albums]
   );
+  const categoryCards = useMemo(() => categories.map((category) => {
+    const playlists = catalogue.albums
+      .filter((album) => album.categories?.includes(category))
+      .sort((left, right) => right.modifiedTime.localeCompare(left.modifiedTime));
+    return {
+      category,
+      count: playlists.length,
+      covers: playlists.filter((album) => album.cover).slice(0, 3)
+    };
+  }), [catalogue.albums, categories]);
   const searchIndex = useMemo(
     () => buildCatalogueSearchIndex(catalogue),
     [catalogue]
@@ -375,9 +388,20 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
       }] : [];
     })
       .sort((left, right) => right.total - left.total)
-      .slice(0, 4);
+      .slice(0, 6);
   }, [catalogue.albums, discoveryStats]);
   const popularSearches = concisePopularSearches(discoveryStats?.searches ?? []);
+  const homeMode =
+    !searchInput.trim() &&
+    !state.query.trim() &&
+    state.category === "all" &&
+    !showFavourites &&
+    state.collection === "all" &&
+    state.kind === "all" &&
+    state.cover === "all" &&
+    state.depth === "all" &&
+    state.sort === "title" &&
+    !state.includeOtherLanguages;
   const browseMode = !state.category && !state.query.trim() && !showFavourites;
   const currentFolder =
     state.collection === "all"
@@ -401,9 +425,11 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
           })
         )
     : [];
-  const visibleAlbums = browseMode
-    ? albums.filter((album) => album.parentId === currentFolderId)
-    : albums;
+  const visibleAlbums = homeMode
+    ? []
+    : browseMode
+      ? albums.filter((album) => album.parentId === currentFolderId)
+      : albums;
   const displayedAlbums = visibleAlbums.slice(0, resultLimit);
   const remainingAlbums = visibleAlbums.length - displayedAlbums.length;
   const folderTrail: Array<Pick<Collection, "id" | "title">> = [
@@ -710,31 +736,33 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
               </div>
             </div>
           ) : null}
-          <nav
-            className="known-collections category-nav"
-            aria-label="Playlist categories"
-          >
-            <span className="known-collections__label">Browse by category</span>
-            <div className="known-collections__list">
-              {categories.map((category) => {
-                const active = state.category === category;
-                return (
-                  <button
-                    key={category}
-                    type="button"
-                    aria-pressed={active}
-                    className={active ? "known-collections__active" : ""}
-                    onClick={() => {
-                      setSearchInput("");
-                      navigate({ ...state, category: active ? "all" : category, query: "", collection: "all", view: undefined, selected: undefined });
-                    }}
-                  >
-                    {category}
-                  </button>
-                );
-              })}
-            </div>
-          </nav>
+          {!homeMode && (
+            <nav
+              className="known-collections category-nav"
+              aria-label="Playlist categories"
+            >
+              <span className="known-collections__label">Browse by category</span>
+              <div className="known-collections__list">
+                {categories.map((category) => {
+                  const active = state.category === category;
+                  return (
+                    <button
+                      key={category}
+                      type="button"
+                      aria-pressed={active}
+                      className={active ? "known-collections__active" : ""}
+                      onClick={() => {
+                        setSearchInput("");
+                        navigate({ ...state, category: active ? "all" : category, query: "", collection: "all", view: undefined, selected: undefined });
+                      }}
+                    >
+                      {category}
+                    </button>
+                  );
+                })}
+              </div>
+            </nav>
+          )}
           <div className="discovery__toolbar">
             <div className="view-switcher" aria-label="Catalogue filters">
               <button
@@ -842,10 +870,54 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
           </div>
         </section>
 
-        {trendingAlbums.length > 0 && !searchInput.trim() && !showFavourites &&
-          (state.category === "all" || !state.category) && state.collection === "all" && (
+        {homeMode && (
+          <section className="home-discovery" aria-label="Browse the catalogue">
+            <div className="home-section-heading">
+              <div>
+                <span className="eyebrow">Explore the shelves</span>
+                <h2>Browse by category</h2>
+              </div>
+              <button
+                type="button"
+                className="home-folder-link"
+                onClick={() => navigate({ ...state, category: undefined, collection: "all", selected: undefined })}
+              >
+                <span aria-hidden="true">▣</span> Browse folders
+              </button>
+            </div>
+            <div className="category-grid">
+              {categoryCards.map(({ category, count, covers }) => (
+                <button
+                  key={category}
+                  type="button"
+                  className="category-card"
+                  onClick={() => navigate({ ...state, category, query: "", collection: "all", view: undefined, selected: undefined })}
+                >
+                  <span className={`category-card__artwork category-card__artwork--${covers.length}`} aria-hidden="true">
+                    {covers.map((album) => album.cover && (
+                      <img key={album.id} src={`/catalogue/${album.cover.path}`} alt="" />
+                    ))}
+                    {covers.length === 0 && <span>{category.slice(0, 1).toLocaleUpperCase()}</span>}
+                  </span>
+                  <span className="category-card__info">
+                    <strong>{category}</strong>
+                    <small>{count} {count === 1 ? "playlist" : "playlists"}</small>
+                  </span>
+                  <span className="category-card__arrow" aria-hidden="true">›</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {homeMode && trendingAlbums.length > 0 && (
           <section className="community-trending" aria-label="Trending playlists this week">
-            <h2><span aria-hidden="true">✦</span> Trending this week</h2>
+            <div className="home-section-heading home-section-heading--trending">
+              <div>
+                <span className="eyebrow">Community picks · this week</span>
+                <h2><span aria-hidden="true">✦</span> Trending playlists</h2>
+              </div>
+            </div>
             <div className="community-trending__list">
               {trendingAlbums.map(({ album, favorites: saves, opens }) => (
                 <button key={album.id} type="button" onClick={() => navigate({ ...state, selected: album.id })}>
@@ -860,6 +932,16 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
               ))}
             </div>
           </section>
+        )}
+
+        {browseMode && state.collection === "all" && (
+          <button
+            type="button"
+            className="folder-mode-link"
+            onClick={() => navigate({ ...state, category: "all", collection: "all", selected: undefined })}
+          >
+            Browse categories
+          </button>
         )}
 
         {browseMode && (
@@ -895,7 +977,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
           </nav>
         )}
 
-        <div className="results-heading">
+        {!homeMode && <div className="results-heading">
           <h2>
             {showFavourites
               ? `${visibleAlbums.length} ${visibleAlbums.length === 1 ? "favourite" : "favourites"}`
@@ -949,7 +1031,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
               </button>
             )}
           </div>
-        </div>
+        </div>}
 
         {childFolders.length > 0 && (
           <section className="folder-grid" aria-label="Folders">
@@ -1019,7 +1101,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
               </article>
             ))}
           </section>
-        ) : !childFolders.length ? (
+        ) : !homeMode && !childFolders.length ? (
           <section className="empty-state">
             <span aria-hidden="true">{showFavourites ? "♡" : "0"}</span>
             <h2>
@@ -1079,6 +1161,72 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
           </section>
         )}
       </main>
+      <section className="feedback" aria-labelledby="feedback-title">
+        <div className="feedback__intro">
+          <span className="eyebrow">Help shape the exchange</span>
+          <h2 id="feedback-title">Have an idea?</h2>
+          <p>Suggest a feature, a category, or a way to make the catalogue more useful.</p>
+        </div>
+        <form
+          onSubmit={async (event) => {
+            event.preventDefault();
+            const message = feedbackMessage.trim();
+            if (!message || feedbackStatus === "sending") return;
+            setFeedbackStatus("sending");
+            try {
+              const response = await fetch("/api/feedback", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message, website: feedbackWebsite })
+              });
+              if (!response.ok) throw new Error("Feedback could not be saved");
+              setFeedbackMessage("");
+              setFeedbackStatus("sent");
+            } catch {
+              setFeedbackStatus("failed");
+            }
+          }}
+        >
+          <label className="feedback__honeypot" aria-hidden="true">
+            Leave this field empty
+            <input
+              tabIndex={-1}
+              autoComplete="off"
+              value={feedbackWebsite}
+              onChange={(event) => setFeedbackWebsite(event.target.value)}
+              name="website"
+            />
+          </label>
+          <label className="feedback__message">
+            <span className="sr-only">Your idea</span>
+            <textarea
+              required
+              minLength={5}
+              maxLength={1000}
+              rows={3}
+              value={feedbackMessage}
+              onChange={(event) => {
+                setFeedbackMessage(event.target.value);
+                if (feedbackStatus !== "idle") setFeedbackStatus("idle");
+              }}
+              placeholder="What would make the MYO catalogue better?"
+            />
+          </label>
+          <div className="feedback__actions">
+            <small>No email needed. Please don’t include personal details.</small>
+            <button type="submit" disabled={feedbackStatus === "sending" || !feedbackMessage.trim()}>
+              {feedbackStatus === "sending" ? "Sending…" : "Send idea"}
+            </button>
+          </div>
+          {feedbackStatus !== "idle" && feedbackStatus !== "sending" && (
+            <p className={`feedback__status feedback__status--${feedbackStatus}`} role="status">
+              {feedbackStatus === "sent"
+                ? "Thanks — your idea has been received."
+                : "Couldn’t send that just now. Please try again."}
+            </p>
+          )}
+        </form>
+      </section>
       <footer>
         <span>Read-only Drive snapshot</span>
         <span>Updated {formatDate(catalogue.generatedAt)}</span>
