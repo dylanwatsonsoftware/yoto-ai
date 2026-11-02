@@ -875,7 +875,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
             <div className="home-section-heading">
               <div>
                 <span className="eyebrow">Explore the shelves</span>
-                <h2>Browse by category</h2>
+                <h2>Categories &amp; trending playlists</h2>
               </div>
               <button
                 type="button"
@@ -906,28 +906,27 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
                   <span className="category-card__arrow" aria-hidden="true">›</span>
                 </button>
               ))}
-            </div>
-          </section>
-        )}
-
-        {homeMode && trendingAlbums.length > 0 && (
-          <section className="community-trending" aria-label="Trending playlists this week">
-            <div className="home-section-heading home-section-heading--trending">
-              <div>
-                <span className="eyebrow">Community picks · this week</span>
-                <h2><span aria-hidden="true">✦</span> Trending playlists</h2>
-              </div>
-            </div>
-            <div className="community-trending__list">
               {trendingAlbums.map(({ album, favorites: saves, opens }) => (
-                <button key={album.id} type="button" onClick={() => navigate({ ...state, selected: album.id })}>
-                  <span className="community-trending__cover">
-                    {album.cover ? <img src={`/catalogue/${album.cover.path}`} alt="" /> : <span aria-hidden="true">♫</span>}
+                <button
+                  key={album.id}
+                  type="button"
+                  className="category-card category-card--playlist"
+                  onClick={() => navigate({ ...state, selected: album.id })}
+                >
+                  <span className="category-card__artwork category-card__artwork--1" aria-hidden="true">
+                    {album.cover
+                      ? <img src={`/catalogue/${album.cover.path}`} alt="" />
+                      : <span aria-hidden="true">♫</span>}
                   </span>
-                  <span className="community-trending__info">
+                  <span className="category-card__info">
                     <strong>{album.title}</strong>
-                    <small>{saves > 0 && <span>♥ {saves}</span>}{saves > 0 && opens > 0 && " · "}{opens > 0 && <span>↗ {opens}</span>}</small>
+                    <small>
+                      {saves > 0 && <span>♥ {saves} saved</span>}
+                      {saves > 0 && opens > 0 && " · "}
+                      {opens > 0 && <span>↗ {opens} opened</span>}
+                    </small>
                   </span>
+                  <span className="category-card__arrow" aria-hidden="true">✦</span>
                 </button>
               ))}
             </div>
