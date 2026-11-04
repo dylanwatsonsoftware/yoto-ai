@@ -882,7 +882,7 @@ export default function App({ catalogue }: { catalogue: Catalogue }) {
                   key={category}
                   type="button"
                   className="category-card"
-                  onClick={() => navigate({ ...state, category, query: "", collection: "all", view: undefined, selected: undefined })}
+                  onClick={() => navigate({ ...state, category, query: "", collection: "all", includeOtherLanguages: category === "Other languages" || state.includeOtherLanguages, view: undefined, selected: undefined })}
                 >
                   <span className={`category-card__artwork category-card__artwork--${covers.length}`} aria-hidden="true">
                     {covers.map((album) => album.cover && (
