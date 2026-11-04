@@ -1,6 +1,7 @@
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import FeedbackInbox from "./FeedbackInbox";
 import { validateCatalogue, type Catalogue } from "./catalogue";
 
 document.documentElement.dataset.theme =
@@ -44,6 +45,6 @@ function CatalogueLoader() {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <CatalogueLoader />
+    {window.location.pathname === "/admin/feedback" ? <FeedbackInbox /> : <CatalogueLoader />}
   </StrictMode>
 );
