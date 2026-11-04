@@ -1,6 +1,7 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 type FeedbackItem = { message: string; submittedAt: string };
+const ADMIN_TOKEN_KEY = "myo-feedback-admin-token";
 
 function formatSubmittedAt(value: string) {
   const date = new Date(value);
@@ -13,7 +14,7 @@ function formatSubmittedAt(value: string) {
 }
 
 export default function FeedbackInbox() {
-  const [token, setToken] = useState("");
+  const [token, setToken] = useState(() => window.sessionStorage.getItem(ADMIN_TOKEN_KEY) ?? "");
   const [items, setItems] = useState<FeedbackItem[] | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "invalid" | "unavailable" | "error">("idle");
 
@@ -27,6 +28,7 @@ export default function FeedbackInbox() {
         cache: "no-store"
       });
       if (response.status === 401) {
+        window.sessionStorage.removeItem(ADMIN_TOKEN_KEY);
         setItems(null);
         setStatus("invalid");
         return;
@@ -38,12 +40,17 @@ export default function FeedbackInbox() {
       }
       if (!response.ok) throw new Error("Feedback could not be loaded");
       const data = (await response.json()) as { items?: FeedbackItem[] };
+      window.sessionStorage.setItem(ADMIN_TOKEN_KEY, token);
       setItems(Array.isArray(data.items) ? data.items : []);
       setStatus("idle");
     } catch {
       setStatus("error");
     }
   }
+
+  useEffect(() => {
+    if (token) void loadFeedback();
+  }, []);
 
   return (
     <main className="feedback-inbox app-shell">
