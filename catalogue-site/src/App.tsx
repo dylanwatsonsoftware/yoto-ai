@@ -219,15 +219,6 @@ function DetailDialog({
               <span>Updated {formatDate(album.modifiedTime)}</span>
               <span>Depth {album.depth}</span>
             </div>
-            <a
-              className="drive-link"
-              href={album.driveUrl}
-              target="_blank"
-              rel="noreferrer"
-              onClick={() => recordEvent("open", album.id)}
-            >
-              Open in Google Drive
-            </a>
             <FavouriteButton
               album={album}
               active={favourites.has(album.id)}
